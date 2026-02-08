@@ -1,0 +1,19 @@
+{
+  "name": "chatappdagobert",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Leandre20c/ChatAppDagobert.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Leandre20c/ChatAppDagobert/issues"
+  },
+  "homepage": "https://github.com/Leandre20c/ChatAppDagobert#readme"
+}
