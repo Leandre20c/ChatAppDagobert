@@ -5,7 +5,9 @@ const app = express()
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
 
+//Dit quel fichier ouvrir pour le client
 app.use(express.static('public'))
+
 app.get('/', (req, res) => {
     res.send('Le serveur fonctionne correctement')
 })

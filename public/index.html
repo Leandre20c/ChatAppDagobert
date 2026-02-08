@@ -1,20 +1,30 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
+  <head>
+    <meta charset="UTF-8" />
     <title>DagobertAI</title>
-</head>
-<body>
-    <h1>Bienvenue dans le mini chat</h1>
+  </head>
+  <body>
+    <h1>Dagobert Chat</h1>
+    <p>The most premium chat app</p>
 
-    <div id="messages"></div>
+    <form>
+      <input type="text" id="name" maxlength="16" placeholder="Your name" />
+      <button>Submit</button>
+    </form>
 
-    <form id="form">
-        <input id="input" autocomplete="off" placeholder="Tapez votre message ici..." />
-        <button>Envoyer</button>
+    <div class="messagesArea">
+      <h2>Convertation</h2>
+      <div id="displayMessages">
+        <p>abababab</p>
+      </div>
+    </div>
+    <form id="message-form">
+      <input id="message-input" autocomplete="off" type="text" placeholder="Your message"/>
+      <button>Send</button>
     </form>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="script.js"></script>
-</body>
+  </body>
 </html>

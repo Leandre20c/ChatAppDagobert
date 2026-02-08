@@ -1,8 +1,8 @@
 const socket = io()
 
-const form = document.getElementById('form')
-const input = document.getElementById('input')
-const messages = document.getElementById('messages')
+const form = document.getElementById('message-form')
+const input = document.getElementById('message-input')
+const messages = document.getElementById('displayMessages')
 
 form.addEventListener('submit', (e) => {
     e.preventDefault()
