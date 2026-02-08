@@ -15,5 +15,9 @@
   "bugs": {
     "url": "https://github.com/Leandre20c/ChatAppDagobert/issues"
   },
-  "homepage": "https://github.com/Leandre20c/ChatAppDagobert#readme"
+  "homepage": "https://github.com/Leandre20c/ChatAppDagobert#readme",
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3"
+  }
 }
