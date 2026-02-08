@@ -1,0 +1,144 @@
+body {
+    background-color: var(--clr-surface-a0);
+    color: var(--clr-primary-a50);
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 300;
+    font-style: normal;
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    margin: 1%;
+}
+
+header {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    
+}
+
+.content-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.messages-area {
+    flex: 1;
+    overflow-y: hidden;
+    padding: 20px;
+}
+
+input {
+    background-color: var(--clr-surface-a10);
+    border-radius: 10px;
+    border-color: var(--clr-surface-a10);
+    border-style: none;
+    height: 30px;
+    color: var(--clr-light-a0);
+    font-family: "Ubuntu", sans-serif;
+    font-weight: 15;
+    font-style: normal;
+    height: 40px
+}
+
+button {
+    background-color: var(--clr-primary-a20);
+    border-radius: 50px;
+    border-color: var(--clr-surface-a10);
+    border-style: none;
+    height: 30px;
+}
+
+.content-area {
+    justify-items: center;
+}
+
+#message-form {
+    padding: 20px;
+    background-color: transparent;
+    display: flex;
+    position: sticky;
+    bottom: 0;
+    gap: 10px;
+}
+
+#message-input {
+    flex: 1;
+}
+
+#send {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#send:hover {
+    background-color: var(--clr-primary-a30);
+}
+
+#send i {
+    color: var(--clr-light-a0);
+}
+
+i {
+    color: var(--clr-dark-a0);
+}
+
+
+
+/** Base colors */
+:root {
+--clr-dark-a0: #000000;
+--clr-light-a0: #ffffff;
+
+/** Theme primary colors */
+--clr-primary-a0: #209126;
+--clr-primary-a10: #449d40;
+--clr-primary-a20: #5eaa57;
+--clr-primary-a30: #77b66f;
+--clr-primary-a40: #8ec286;
+--clr-primary-a50: #a5ce9d;
+
+/** Theme surface colors */
+--clr-surface-a0: #121212;
+--clr-surface-a10: #282828;
+--clr-surface-a20: #3f3f3f;
+--clr-surface-a30: #575757;
+--clr-surface-a40: #717171;
+--clr-surface-a50: #8b8b8b;
+
+/** Theme tonal surface colors */
+--clr-surface-tonal-a0: #171e16;
+--clr-surface-tonal-a10: #2c332b;
+--clr-surface-tonal-a20: #434942;
+--clr-surface-tonal-a30: #5b605a;
+--clr-surface-tonal-a40: #747973;
+--clr-surface-tonal-a50: #8e928d;
+
+/** Success colors */
+--clr-success-a0: #22946e;
+--clr-success-a10: #47d5a6;
+--clr-success-a20: #9ae8ce;
+
+/** Warning colors */
+--clr-warning-a0: #a87a2a;
+--clr-warning-a10: #d7ac61;
+--clr-warning-a20: #ecd7b2;
+
+/** Danger colors */
+--clr-danger-a0: #9c2121;
+--clr-danger-a10: #d94a4a;
+--clr-danger-a20: #eb9e9e;
+
+/** Info colors */
+--clr-info-a0: #21498a;
+--clr-info-a10: #4077d1;
+--clr-info-a20: #92b2e5;
+}

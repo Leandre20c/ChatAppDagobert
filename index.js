@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
+const rooms = []
 
 app.use('/', express.static('public', { index: 'connexion.html' }));
 
@@ -19,5 +20,25 @@ io.on('connection', (socket) => {
     socket.on('message', (msg) => {
         io.emit('message', msg)
         console.log(msg)
+    })
+
+    socket.on('create-room', (roomName) => {
+        if (roomName != null) {
+            rooms.push(roomName)
+            socket.join(roomName)
+            socket.currentRoom = roomName
+            socket.emit('message', "Vous avez créé et rejoint la room : "+roomName)
+            console.log("room " +roomName+" was created and joined by" +socket.id)
+            console.log(rooms)
+        }
+    })
+
+    socket.on('join-room', (roomName) => {
+        if (roomName != null && rooms.indexOf(roomName) !== -1) {
+            socket.join(roomName)
+            socket.currentRoom = roomName
+            socket.emit('message', "Vous avez rejoint la room : "+roomName)
+            console.log("room " +roomName+" was joined")
+        }
     })
 })

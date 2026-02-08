@@ -1,26 +1,50 @@
-<!doctype html>
-<html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <title>DagobertAI</title>
-  </head>
-  <body>
-    <h1>Dagobert Chat</h1>
-    <p>The most premium chat app</p>
-    <button id="disconnect-button">Disconnect</button>
+    <!doctype html>
+    <html lang="fr">
+    <head>
+        <meta charset="UTF-8" />
+        <link rel="stylesheet" href="styles.css">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+        <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
+        <title>DagobertAI</title>
+    </head>
+    <body>
+        <header>
+            <div class="header-titles">
+                <h1>Dagobert Chat</h1>
+                <p>The most premium chat app</p>
+            </div>
+            <div class="options">
+                <button id="disconnect-button">Disconnect</button>
+            </div>
+        </header>
 
-    <div class="messagesArea">
-      <h2>Convertation</h2>
-      <div id="displayMessages">
-      </div>
-    </div>
+        <div class="room-wrapper">
+            <form id="room-join-form">
+                <input id="room-join-input" autocomplete="off" type="text" placeholder="Join room's name"/>
+                <button>Join</button>
+                </form>
+                <form id="room-create-form">
+                <input id="room-create-input" autocomplete="off" type="text" placeholder="Create room's name"/>
+                <button>Create</button>
+            </form>
+        </div>
 
-    <form id="message-form">
-      <input id="message-input" autocomplete="off" type="text" placeholder="Your message"/>
-      <button>Send</button>
-    </form>
+        <div class="content-area"> 
+            <div class="messages-area">
+            <h2>Convertation</h2>
+            <div id="display-messages">
+            </div>
+            </div>
 
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="script.js"></script>
-  </body>
-</html>
+            <form id="message-form">
+            <input id="message-input" autocomplete="off" type="text" placeholder="Your message"/>
+            <button id="send"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
+        </div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="script.js"></script>
+    </body>
+    </html>
