@@ -91,6 +91,25 @@ i {
     color: var(--clr-dark-a0);
 }
 
+.post {
+    background-color: var(--clr-surface-a40);
+    border-radius: 10px;
+    padding: 0 0 .25rem;
+    margin: .5rem;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.post--left {
+    width: 60%;
+    align-self: flex-start;
+}
+
+.post--right {
+    width: 60%;
+    align-self: flex-end;
+}
+
 
 
 /** Base colors */

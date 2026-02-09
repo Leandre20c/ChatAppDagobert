@@ -21,24 +21,23 @@
         </header>
 
         <div class="room-wrapper">
-            <form id="room-join-form">
+            <form class="form-join-room">
                 <input id="room-join-input" autocomplete="off" type="text" placeholder="Join room's name"/>
                 <button>Join</button>
-                </form>
-                <form id="room-create-form">
-                <input id="room-create-input" autocomplete="off" type="text" placeholder="Create room's name"/>
-                <button>Create</button>
             </form>
         </div>
 
         <div class="content-area"> 
             <div class="messages-area">
-            <h2>Convertation</h2>
-            <div id="display-messages">
-            </div>
+                <h2>Convertation</h2>
+                <div class="chat-display"></div>
             </div>
 
-            <form id="message-form">
+            <p class="user-list"></p>
+
+            <p class="room-list"></p>
+
+            <form class="message-form">
             <input id="message-input" autocomplete="off" type="text" placeholder="Your message"/>
             <button id="send"><i class="fa-solid fa-paper-plane"></i></button>
             </form>
