@@ -110,6 +110,31 @@ i {
     align-self: flex-end;
 }
 
+.post--info {
+    background-color: var(--clr-info-a20);
+    color: var(--clr-dark-a0);
+    text-align: center;
+    width: 80%;
+    align-self: center;
+    font-style: italic;
+}
+
+.info-icon {
+    color: var(--clr-info-a10)
+}
+
+.post__header {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    opacity: 0.7;
+}
+
+.post__text {
+    padding: 0.5rem;
+}
+
 
 
 /** Base colors */

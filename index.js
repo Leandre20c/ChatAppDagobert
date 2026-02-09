@@ -8,7 +8,7 @@ const rooms = []
 const UsersState = {
     users: [],
     setUsers: function (newUsersArray) {
-        this.user = newUsersArray
+        this.users = newUsersArray
     }
 }
 
@@ -23,73 +23,113 @@ http.listen(3000, () => {
 })
 
 io.on('connection', (socket) => {
-    const currUser = socket.id
-    console.log('User ' + currUser + ' connected :)')
+    console.log('User ' + socket.id + ' connected')
 
-    socket.on('message', (msg) => {
-        io.emit('message', msg)
-        console.log(msg)
+    socket.on('register-username', (username) => {
+        if (!username || username.trim() === '' || username.length > 16) {
+            socket.emit('username-error', 'Pseudo invalide')
+            return
+        }
+
+        // If username already exist
+        const existingUser = UsersState.users.find(u => u.name.toLowerCase() === username.toLowerCase())
+        if (existingUser) {
+            socket.emit('username-error', 'Ce pseudo est déjà utilisé')
+            return
+        }
+
+        // Register user without name
+        const user = activateUser(socket.id, username, null)
+        socket.emit('username-accepted', username)
+        
+        console.log(`User ${socket.id} registered as ${username}`)
     })
 
-    socket.on('create-room', (roomName) => {
-        if (roomName != null) {
-            rooms.push(roomName)
-            joinRoom(roomName)
-            socket.emit('message', "Vous avez créé : "+roomName)
-            console.log("room " +roomName+" was created and joined by" +socket.id)
-            console.log(rooms)
+    socket.on('message', (data) => {
+        const user = getUser(socket.id)
+        
+        if (!user) {
+            socket.emit('error', 'Vous devez être connecté pour envoyer des messages')
+            return
+        }
+
+        if (user.room) {
+            io.to(user.room).emit('message', buildMessage(data.name, data.text))
+        } else {
+            io.emit('message', buildMessage(data.name, data.text))
         }
     })
 
-    socket.on('join-room', ({username, roomName}) => {
-        if (roomName != null && rooms.indexOf(roomName) !== -1) {
-            const prevRoom = getUser(currUser)?.room
+    socket.on('enterRoom', ({name, room}) => {
+        const user = getUser(socket.id)
+        
+        if (!user) {
+            socket.emit('error', 'Vous devez être connecté')
+            return
+        }
 
-            if (prevRoom != null) {
-                socket.leave(prevRoom)
-                io.to(prevRoom).emit('message', buildMessage('INFO', username + ' has left the room'))
-            }
+        if (!room || room.trim() === '') {
+            socket.emit('error', 'Nom de room invalide')
+            return
+        }
 
-            const user = activateUser(currUser, name, room)
+        const prevRoom = user.room
 
-            if (prevRoom) {
-                io.to(prevRoom).emit('userList', {
-                    users: [getUsersInRoom(prevRoom)]
+        if (prevRoom != null) {
+            socket.leave(prevRoom)
+            io.to(prevRoom).emit('message', buildMessage('INFO', name + ' a quitté le salon'))
+            
+            // Update previous room
+            io.to(prevRoom).emit('userList', {
+                users: getUsersInRoom(prevRoom)
+            })
+        }
+
+        // Update user's room
+        user.room = room
+        socket.join(room)
+
+        // If room doesnt exist, add it
+        if (!rooms.includes(room)) {
+            rooms.push(room)
+        }
+
+        socket.emit('message', buildMessage("INFO", "Vous avez rejoint : " + room))
+        io.to(room).emit('message', buildMessage("INFO", name + " a rejoint le salon"))
+
+        // Update lists
+        io.to(room).emit('userList', {
+            users: getUsersInRoom(room)
+        })
+
+        io.emit('roomList', {
+            rooms: getAllActiveRooms()
+        })
+    })
+
+    // Disconnect
+    socket.on('disconnect', () => {
+        const user = getUser(socket.id)
+        
+        if (user) {
+            if (user.room) {
+                io.to(user.room).emit('message', buildMessage('INFO', `${user.name} s'est déconnecté`))
+                
+                io.to(user.room).emit('userList', {
+                    users: getUsersInRoom(user.room)
                 })
             }
 
-            socket.join(user.room)
-
-            socket.emit('message', buildMessage("INFO", "You joined the room: " + user.room))
-
-            io.to(user.room).emit('userList', {
-                users: getUsersInRoom(user.room)
-            })
+            userLeavesApp(socket.id)
 
             io.emit('roomList', {
                 rooms: getAllActiveRooms()
             })
+
+            console.log(`User ${user.name} (${socket.id}) disconnected`)
+        } else {
+            console.log(`Unknown user ${socket.id} disconnected`)
         }
-    })
-
-    // When user disconnect
-    socket.on('disconnect', () => {
-        const user = getUser(socket.id)
-        userLeavesApp(socket.id)
-
-        if (user) {
-            io.to(user.room).emit('message', buildMsg(ADMIN, `${user.name} has left the room`))
-
-            io.to(user.room).emit('userList', {
-                users: getUsersInRoom(user.room)
-            })
-
-            io.emit('roomList', {
-                rooms: getAllActiveRooms()
-            })
-        }
-
-        console.log(`User ${socket.id} disconnected`)
     })
 })
 
@@ -98,10 +138,9 @@ function buildMessage(name, text) {
     return {
         name,
         text,
-        time: new Intl.DateTimeFormat('default', {
-            hour: 'numeric',
-            minute: 'numeric',
-            second: 'numeric'
+        time: new Intl.DateTimeFormat('fr-FR', {
+            hour: '2-digit',
+            minute: '2-digit'
         }).format(new Date())
     }
 }

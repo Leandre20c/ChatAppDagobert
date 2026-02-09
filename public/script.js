@@ -10,26 +10,36 @@ const roomList = document.querySelector('.room-list')
 var username = localStorage.getItem("username")
 if (username == null || username == "") {
     window.location.href = 'connexion.html'
+} else {
+    socket.emit('register-username', username)
 }
+
+socket.on('error', (errorMessage) => {
+    alert(errorMessage)
+})
 
 function sendMessage(e) {
     e.preventDefault()
-    socket.emit('message', {
-        name: username,
-        text: message_input.value
-    })
-    // Clear the text and focus on text entry so user don't have to click on
-    message_input.value = ''
+    if (message_input.value.trim() !== '') {
+        socket.emit('message', {
+            name: username,
+            text: message_input.value
+        })
+        // Clear the text and focus on text entry so user don't have to click on
+        message_input.value = ''
+    }
     message_input.focus()
 }
 
 function enterRoom(e) {
     e.preventDefault()
-    socket.emit('enterRoom', {
-        name: username,
-        room: joined_room.value
-    })
-
+    if (joined_room.value.trim() !== '') {
+        socket.emit('enterRoom', {
+            name: username,
+            room: joined_room.value
+        })
+        joined_room.value = ''
+    }
 }
 
 // When join room is pressed
@@ -37,13 +47,12 @@ document.querySelector('.form-join-room')
     .addEventListener('submit', enterRoom)
 
 // When send message is pressed
-document.querySelector('message-form')
+document.querySelector('.message-form')
     .addEventListener('submit', sendMessage)
 
 
 disconnect_button.addEventListener("click", (e) => {
     e.preventDefault()
-
     localStorage.removeItem("username")
     window.location.href = 'connexion.html'
 })
@@ -54,22 +63,36 @@ socket.on('message', (data) => {
     li.className = 'post'
     if (name === username) li.className = 'post post--left'
     if (name !== username) li.className = 'post post--right'
+    if (name === 'INFO') li.className = 'post post--info'
+
+    if (name !== username) {
+        li.innerHTML = `<div class="post__header">
+            <span class="post__header--name">${name}</span>
+            <span class="post__header--time">${time}</span>
+        </div>
+        <div class="post__text">${text}</div>`
+    } else {
+        li.innerHTML = `<div class="post__text">${text}</div>
+        <div class="post__header">
+            <span class="post__header--time">${time}</span>
+        </div>`
+    }
     chatDisplay.appendChild(li)
     chatDisplay.scrollTop = chatDisplay.scrollHeight
 })
 
-socket.On('userList', ({ users }) => {
+socket.on('userList', ({ users }) => {
     showUsers(users)
 })
 
-socket.On('roomList', ({ rooms }) => {
-    showUsers(rooms)
+socket.on('roomList', ({ rooms }) => {
+    showRooms(rooms)
 })
 
 function showUsers(users) {
     usersList.textContent = ''
-    if (users) {
-        usersList.innerHTML = `<em>Users in ${chatRoom.value}:</em>`
+    if (users && users.length > 0) {
+        usersList.innerHTML = `<em>Users in room:</em>`
         users.forEach((user, i) => {
             usersList.textContent += ` ${user.name}`
             if (users.length > 1 && i !== users.length - 1) {
@@ -81,7 +104,7 @@ function showUsers(users) {
 
 function showRooms(rooms) {
     roomList.textContent = ''
-    if (rooms) {
+    if (rooms && rooms.length > 0) {
         roomList.innerHTML = '<em>Active Rooms:</em>'
         rooms.forEach((room, i) => {
             roomList.textContent += ` ${room}`
