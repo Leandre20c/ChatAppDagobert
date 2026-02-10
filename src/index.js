@@ -25,7 +25,14 @@ http.listen(3000, () => {
 
 
 io.on('register', ({username, password}) => {
-    
+    (success, error) = UserDB.register(username, password)
+
+    if (success === true) {
+        io.emit('register-sucess')
+    }
+    else {
+        io.emit('register-error')
+    }
 })
 
 io.on('connection', (socket) => {
