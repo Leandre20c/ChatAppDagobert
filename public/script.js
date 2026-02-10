@@ -6,13 +6,28 @@ const disconnect_button = document.getElementById("disconnect-button")
 const joined_room = document.getElementById('room-join-input')
 const usersList = document.querySelector('.user-list')
 const roomList = document.querySelector('.room-list')
+const usernameDisplay = document.querySelector("#current-username")
 
-var username = localStorage.getItem("username")
-if (username == null || username == "") {
-    window.location.href = 'connexion.html'
+if (!username || username.trim() === "") {
+    window.location.href = 'register_user/register.html'
 } else {
-    socket.emit('register-username', username)
+    socket.emit('verify-session', username)
 }
+
+// If there is something wrongggg
+socket.on('session-invalid', () => {
+    localStorage.removeItem('username')
+    alert('Votre session a expiré, veuillez vous reconnecter')
+    window.location.href = 'register_user/register.html'
+})
+
+// If session is valid
+socket.on('session-valid', (userData) => {
+    // Afficher le username
+    usernameDisplay.textContent = username 
+    console.log('Connecté en tant que:', userData.username)
+})
+
 
 socket.on('error', (errorMessage) => {
     alert(errorMessage)
@@ -100,7 +115,6 @@ socket.on('roomList', ({ rooms }) => {
 function showUsers(users) {
     usersList.textContent = ''
     if (users && users.length > 0) {
-        usersList.innerHTML = `<em>Users in room:</em>`
         users.forEach((user, i) => {
             usersList.textContent += ` ${user.name}`
             if (users.length > 1 && i !== users.length - 1) {
@@ -113,8 +127,9 @@ function showUsers(users) {
 function showRooms(rooms) {
     roomList.textContent = ''
     if (rooms && rooms.length > 0) {
-        roomList.innerHTML = '<em>Active Rooms:</em>'
         rooms.forEach((room, i) => {
+            const li = document.createElement('li')
+            li.className = 'roomItem'
             roomList.textContent += ` ${room}`
             if (rooms.length > 1 && i !== rooms.length - 1) {
                 roomList.textContent += ","

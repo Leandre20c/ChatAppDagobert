@@ -2,18 +2,65 @@ const express = require('express')
 const app = express()
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
-const { UserDB, MessageDB } = require('./database')
+const { UserDB, MessageDB, db } = require('./database')
 const rooms = []
 
 // State
 const UsersState = {
-    users: [],
+    users: [], // [{socketId, userId, username, room, status}]
+
     setUsers: function (newUsersArray) {
         this.users = newUsersArray
+    },
+
+    // Add/modify a connected user
+    addUser: function(socketId, userId, username) {
+        const user = { socketId, userId, username, room: 'general', status: 'online' }
+        this.users = [...this.users.filter(u => u.socketId !== socketId), user]
+        return user
+    },
+
+    // Update the room
+    setUserRoom: function(socketId, room) {
+        const user = this.users.find(u => u.socketId === socketId)
+        if (user) {
+            user.room = room
+        }
+        return user
+    },
+
+    // Get user by socket id
+    getBySocketId: function(socketId) {
+        return this.users.find(u => u.socketId === socketId)
+    },
+
+    // get user by his id (database)
+    getByUserId: function(userId) {
+        return this.users.find(u => u.userId === userId)
+    },
+
+    // get user by his username
+    getUserByName: function(username) {
+        return this.users.find(u => u.username === username)
+    },
+
+    // Get all users in a room
+    getUsersInRoom: function(room) {
+        return this.users.filter(u => u.room === room)
+    },
+
+    // On disconnect
+    removeUser: function(socketId) {
+        this.users = this.users.filter(u => u.socketId !== socketId)
+    },
+
+    // Get all active rooms
+    getActiveRooms: function() {
+        return [...new Set(this.users.map(u => u.room).filter(room => room !== null))]
     }
 }
 
-app.use('/', express.static('public', { index: 'connexion.html' }));
+app.use('/', express.static('public', { index: '../public/register_user/register.html' }));
 
 app.get('/', (req, res) => {
     res.send('Le serveur fonctionne correctement')
@@ -23,43 +70,38 @@ http.listen(3000, () => {
     console.log('Serveur lancé sur http://localhost:3000')
 })
 
-
-io.on('register', ({username, password}) => {
-    (success, error) = UserDB.register(username, password)
-
-    if (success === true) {
-        io.emit('register-sucess')
-    }
-    else {
-        io.emit('register-error')
-    }
-})
-
 io.on('connection', (socket) => {
     console.log('User ' + socket.id + ' connected')
 
-    socket.on('register-username', (username) => {
-        if (!username || username.trim() === '' || username.length > 16) {
-            socket.emit('username-error', 'Pseudo invalide')
-            return
-        }
+    // On register
+    socket.on('register', async ({ username, password }) => {
+        const result = await UserDB.register(username, password)
 
-        // If username already exist
-        const existingUser = UsersState.users.find(u => u.name.toLowerCase() === username.toLowerCase())
-        if (existingUser) {
-            socket.emit('username-error', 'Ce pseudo est déjà utilisé')
-            return
+        if (result.success === true) {
+            socket.emit('register-success')
+        } else {
+            socket.emit('register-error', result.error)
         }
-
-        // Register user without name
-        const user = activateUser(socket.id, username, null)
-        socket.emit('username-accepted', username)
-        
-        console.log(`User ${socket.id} registered as ${username}`)
     })
 
+    socket.on('verify-session', (username) => {
+        // Verify if the user is in the db
+        const stmt = db.prepare('SELECT id, username FROM users WHERE username = ?')
+        const user = stmt.get(username)
+
+        if (user) {
+            // The user exists, add it to users
+            UsersState.addUser(socket.id, user.id, user.username)
+            socket.emit('session-valid', { username: user.username, userId: user.id })
+        } else {
+            // User is not in the db :(((
+            socket.emit('session-invalid')
+        }
+    })
+
+    // When user send message
     socket.on('message', (data) => {
-        const user = getUser(socket.id)
+        const user = UsersState.getBySocketId(socket.id)
         
         if (!user) {
             socket.emit('error', 'Vous devez être connecté pour envoyer des messages')
@@ -73,8 +115,9 @@ io.on('connection', (socket) => {
         }
     })
 
+    // When user enter a room
     socket.on('enterRoom', ({name, room}) => {
-        const user = getUser(socket.id)
+        const user = UsersState.getBySocketId(socket.id)
         
         if (!user) {
             socket.emit('error', 'Vous devez être connecté')
@@ -94,7 +137,7 @@ io.on('connection', (socket) => {
             
             // Update previous room
             io.to(prevRoom).emit('userList', {
-                users: getUsersInRoom(prevRoom)
+                users: UsersState.getUsersInRoom(prevRoom)
             })
         }
 
@@ -112,31 +155,31 @@ io.on('connection', (socket) => {
 
         // Update lists
         io.to(room).emit('userList', {
-            users: getUsersInRoom(room)
+            users: UsersState.getUsersInRoom(room)
         })
 
         io.emit('roomList', {
-            rooms: getAllActiveRooms()
+            rooms: UsersState.getActiveRooms()
         })
     })
 
     // Disconnect
     socket.on('disconnect', () => {
-        const user = getUser(socket.id)
+        const user = UsersState.getBySocketId(socket.id)
         
         if (user) {
             if (user.room) {
                 io.to(user.room).emit('message', buildMessage('INFO', `${user.name} s'est déconnecté`))
                 
                 io.to(user.room).emit('userList', {
-                    users: getUsersInRoom(user.room)
+                    users: UsersState.getUsersInRoom(user.room)
                 })
             }
 
-            userLeavesApp(socket.id)
+            UsersState.removeUser(socket.id)
 
             io.emit('roomList', {
-                rooms: getAllActiveRooms()
+                rooms: UsersState.getActiveRooms()
             })
 
             console.log(`User ${user.name} (${socket.id}) disconnected`)
@@ -156,32 +199,4 @@ function buildMessage(name, text) {
             minute: '2-digit'
         }).format(new Date())
     }
-}
-
-// User functions
-function activateUser(id, name, room) {
-    const user = {id, name, room}
-    UsersState.setUsers([
-        ...UsersState.users.filter(user => user.id != id),
-        user
-    ])
-    return user
-}
-
-function userLeavesApp(id) {
-    UsersState.setUsers(
-        UsersState.users.filter(user => user.id !== id)
-    )
-}
-
-function getUser(id) {
-    return UsersState.users.find(user => user.id === id)
-}
-
-function getUsersInRoom(room) {
-    return UsersState.users.filter(user => user.room === room)
-}
-
-function getAllActiveRooms() {
-    return Array.from(new Set(UsersState.users.map(user => user.room)))
 }

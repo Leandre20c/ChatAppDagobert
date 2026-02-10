@@ -82,5 +82,5 @@ module.exports = {
     MessageDB, 
     createUserDB,      // Pour les tests
     createMessageDB,   // Pour les tests
-    db                 // DB de prod
+    db                 // db classique pour index.js
 }

@@ -1,3 +1,5 @@
+const socket = io()
+
 const regForm = document.getElementById("reg-form")
 const usernameInput = document.getElementById("username")
 const passwordInput = document.getElementById("password")
@@ -6,6 +8,7 @@ regForm.addEventListener('submit', registerUser)
 
 async function registerUser(e) {
     e.preventDefault()
+    console.log("caca")
     
     const username = usernameInput.value.trim()
     const password = passwordInput.value
@@ -25,7 +28,8 @@ async function registerUser(e) {
 
 socket.on('register-success', () => {
     alert('Account created!')
-    window.location.href = 'connexion.html'
+    localStorage.setItem('username', usernameInput.value.trim())
+    window.location.href = '../../src/index.html'
 })
 
 socket.on('register-error', (error) => {
