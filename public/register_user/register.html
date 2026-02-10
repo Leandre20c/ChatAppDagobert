@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css">
+
+    <title>DagobertChat</title>
+  </head>
+  <body>
+    <h1>Register</h1>
+    <form id="reg-form">
+        <input type="text" autocomplete="off" maxlength="16" minlength="3" id="username" placeholder="Username"/>
+        <input type="password" autocomplete="off" id="password" minlength="6" placeholder="Password"/>
+        <button type="submit">Register</button>
+    </form>
+
+    <p>Déjà un compte ? <a href="login.html">Se connecter</a></p>
+    
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="register_script.js"></script>
+  </body>
+</html>

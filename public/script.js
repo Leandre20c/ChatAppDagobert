@@ -65,7 +65,15 @@ socket.on('message', (data) => {
     if (name !== username) li.className = 'post post--right'
     if (name === 'INFO') li.className = 'post post--info'
 
-    if (name !== username) {
+    if (name === 'INFO') {
+        li.innerHTML =
+        `<div class="post__header">
+            <i class="fa-solid fa-circle-info info--icon"></i>
+            <span class="post__header--time">${time}</span>
+        </div>
+        <div class="post__text">${text}</div>`
+    }
+    else if (name !== username) {
         li.innerHTML = `<div class="post__header">
             <span class="post__header--name">${name}</span>
             <span class="post__header--time">${time}</span>

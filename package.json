@@ -17,6 +17,8 @@
   },
   "homepage": "https://github.com/Leandre20c/ChatAppDagobert#readme",
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "better-sqlite3": "^12.6.2",
     "express": "^5.2.1",
     "socket.io": "^4.8.3"
   }

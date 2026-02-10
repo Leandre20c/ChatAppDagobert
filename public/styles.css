@@ -92,7 +92,8 @@ i {
 }
 
 .post {
-    background-color: var(--clr-surface-a40);
+    background-color: var(--clr-surface-a10);
+    color: var(--clr-light-a0);
     border-radius: 10px;
     padding: 0 0 .25rem;
     margin: .5rem;
@@ -119,7 +120,7 @@ i {
     font-style: italic;
 }
 
-.info-icon {
+.info--icon {
     color: var(--clr-info-a10)
 }
 
