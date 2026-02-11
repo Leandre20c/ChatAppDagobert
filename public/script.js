@@ -1,3 +1,5 @@
+const username = localStorage.getItem('username')
+
 const socket = io()
 
 const message_input = document.getElementById('message-input')
@@ -77,11 +79,21 @@ socket.on('message', (data) => {
     const { name, text, time } = data
     const li = document.createElement('li')
     li.className = 'post'
-    if (name === username) li.className = 'post post--left'
-    if (name !== username) li.className = 'post post--right'
+    if (name === username) li.className = 'post post--right'
+    if (name !== username) li.className = 'post post--left'
     if (name === 'INFO') li.className = 'post post--info'
+    if (name === 'ALERT') li.className = 'post post--alert'
 
-    if (name === 'INFO') {
+
+    if (name === 'ALERT') {
+        li.innerHTML =
+        `<div class="post__header">
+            <i class="fa-solid fa-circle-exclamation alert--icon"></i>
+            <span class="post__header--time">${time}</span>
+        </div>
+        <div class="post__text">${text}</div>`
+    }
+    else if (name === 'INFO') {
         li.innerHTML =
         `<div class="post__header">
             <i class="fa-solid fa-circle-info info--icon"></i>
@@ -117,7 +129,7 @@ function showUsers(users) {
     usersList.textContent = ''
     if (users && users.length > 0) {
         users.forEach((user, i) => {
-            usersList.textContent += ` ${user.name}`
+            usersList.textContent += ` ${user.username}`
             if (users.length > 1 && i !== users.length - 1) {
                 usersList.textContent += ","
             }
@@ -128,13 +140,28 @@ function showUsers(users) {
 function showRooms(rooms) {
     roomList.textContent = ''
     if (rooms && rooms.length > 0) {
-        rooms.forEach((room, i) => {
-            const li = document.createElement('li')
-            li.className = 'roomItem'
-            roomList.textContent += ` ${room}`
-            if (rooms.length > 1 && i !== rooms.length - 1) {
-                roomList.textContent += ","
-            }
+        rooms.forEach((room) => {
+            const roomDiv = document.createElement('div')
+            roomDiv.className = 'roomItem'
+
+            // Room item content
+            roomDiv.innerHTML = `
+                <span class="roomItem--count"><i class="fa-solid fa-user"></i>${room.userCount}</span>
+                <span class="roomItem--name">${room.name}</span>
+            `
+            
+            // Tooltip
+            roomDiv.title = `Click to join ${room.name} (${room.userCount} user${room.userCount > 1 ? 's' : ''})`
+            
+            // Click action
+            roomDiv.addEventListener('click', () => {
+                socket.emit('enterRoom', {
+                    name: username,
+                    room: room.name
+                })
+            })
+            
+            roomList.appendChild(roomDiv)
         })
     }
 }

@@ -140,9 +140,15 @@ io.on('connection', (socket) => {
 
         const prevRoom = user.room
 
+        if (prevRoom === room) {
+            // Alert the player
+            socket.emit('message', buildMessage("ALERT", "You are already in this room."))
+            return
+        }
+
         if (prevRoom != null) {
             socket.leave(prevRoom)
-            io.to(prevRoom).emit('message', buildMessage('INFO', name + ' a quitté le salon'))
+            io.to(prevRoom).emit('message', buildMessage('INFO', name + ' leaved the room'))
             
             // Update previous room
             io.to(prevRoom).emit('userList', {
@@ -160,15 +166,18 @@ io.on('connection', (socket) => {
         }
 
         socket.emit('message', buildMessage("INFO", "Vous avez rejoint : " + room))
-        io.to(room).emit('message', buildMessage("INFO", name + " a rejoint le salon"))
+        io.to(room).emit('message', buildMessage("INFO", name + " joined the room"))
 
-        // Update lists
+        // Update current room
         io.to(room).emit('userList', {
             users: UsersState.getUsersInRoom(room)
         })
 
         io.emit('roomList', {
-            rooms: UsersState.getActiveRooms()
+            rooms: UsersState.getActiveRooms().map(room => ({
+                name: room,
+                userCount: UsersState.getUsersInRoom(room).length
+            }))
         })
     })
 
@@ -188,10 +197,13 @@ io.on('connection', (socket) => {
             UsersState.removeUser(socket.id)
 
             io.emit('roomList', {
-                rooms: UsersState.getActiveRooms()
+                rooms: UsersState.getActiveRooms().map(room => ({
+                    name: room,
+                    userCount: UsersState.getUsersInRoom(room).length
+                }))
             })
 
-            console.log(`User ${user.name} (${socket.id}) disconnected`)
+            console.log(`User ${user.username} (${socket.id}) disconnected`)
         } else {
             console.log(`Unknown user ${socket.id} disconnected`)
         }

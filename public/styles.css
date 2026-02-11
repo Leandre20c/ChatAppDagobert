@@ -437,6 +437,21 @@ body {
     color: var(--clr-info-a10);
 }
 
+.post--alert {
+    background-color: var(--clr-danger-a20);
+    color: var(--clr-dark-a0);
+    text-align: center;
+    max-width: 80%;
+    align-self: center;
+    font-style: italic;
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+}
+
+.alert--icon {
+    color: var(--clr-danger-a10);
+}
+
 .post__header {
     display: flex;
     justify-content: space-between;
@@ -450,6 +465,58 @@ body {
     font-size: 0.95rem;
     line-height: 1.5;
     word-wrap: break-word;
+}
+
+
+/* ===== ROOMITEM ===== */
+.roomItem {
+    position: relative;
+    background-color: var(--clr-surface-a20);
+    color: var(--clr-light-a0);
+    border: 1px solid var(--clr-surface-a30);
+    border-radius: 10px;
+    padding: 0.6rem 1rem;
+    justify-content: space-between;
+    align-items: center;
+    display: flex;
+    cursor: pointer;
+    transition: transform 0.2s ease, 
+                box-shadow 0.3s ease;
+}
+
+.roomItem::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--clr-surface-a30);
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.roomItem:hover::before {
+    opacity: 1;
+}
+
+.roomItem:hover {
+    transform: translateY(-2px);
+}
+
+.roomItem--count {
+    color: var(--clr-success-a10);
+}
+
+.roomItem--name {
+    color: var(--clr-light-a0);
+}
+
+#send i {
+    color: var(--clr-success-a10);
+    font-size: 0.5rem;
 }
 
 /* ===== SCROLLBAR ===== */
