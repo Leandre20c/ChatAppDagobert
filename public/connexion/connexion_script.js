@@ -20,8 +20,8 @@ function registerUser(e) {
     const username = usernameInput.value.trim()
     const password = passwordInput.value
 
-    if (username.length < 3 || username.length > 16) {
-        alert('Username must contain between 3 and 16 caracters.')
+    if (username.length < 6 || username.length > 16) {
+        alert('Username must contain between 6 and 16 caracters.')
         return
     }
 

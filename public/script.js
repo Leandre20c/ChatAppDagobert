@@ -146,7 +146,7 @@ function showRooms(rooms) {
 
             // Room item content
             roomDiv.innerHTML = `
-                <span class="roomItem--count"><i class="fa-solid fa-user"></i>${room.userCount}</span>
+                <span class="roomItem--count"><i class="fa-solid fa-user connected-user-icon"></i>${room.userCount}</span>
                 <span class="roomItem--name">${room.name}</span>
             `
             

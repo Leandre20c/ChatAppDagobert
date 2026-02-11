@@ -514,7 +514,7 @@ body {
     color: var(--clr-light-a0);
 }
 
-#send i {
+.connected-user-icon i {
     color: var(--clr-success-a10);
     font-size: 0.5rem;
 }
