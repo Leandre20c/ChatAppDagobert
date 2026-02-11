@@ -61,3 +61,11 @@ socket.on('connexion-error', (error) => {
     console.log('Error during connexion:', error)
     alert(error)
 })
+
+socket.on('enterRoom', ({ name, room }) => {
+    socket.emit('enterRoom', {
+        name,
+        room
+    })
+
+})

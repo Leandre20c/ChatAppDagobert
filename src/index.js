@@ -3,7 +3,7 @@ const app = express()
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
 const { UserDB, MessageDB, db } = require('./database')
-const rooms = []
+//rooms dans la database
 
 // State
 const UsersState = {
@@ -88,6 +88,7 @@ io.on('connection', (socket) => {
 
         if (result.success === true) {
             socket.emit('login-success')
+            socket.emit('enterRoom', { name: result.user.username, room: 'PublicRoom' })
         } else {
             socket.emit('connexion-error', result.error)
         }
@@ -156,29 +157,45 @@ io.on('connection', (socket) => {
             })
         }
 
-        // Update user's room
-        user.room = room
-        socket.join(room)
-
-        // If room doesnt exist, add it
-        if (!rooms.includes(room)) {
-            rooms.push(room)
+        // Vérifie ou crée la room en base
+        var roomId;
+        const roomStmt = db.prepare('SELECT id FROM rooms WHERE room_name = ?');
+        const foundRoom = roomStmt.get(room);
+        if (!foundRoom) {
+            const insertRoom = db.prepare('INSERT INTO rooms (room_name) VALUES (?)');
+            const info = insertRoom.run(room);
+            roomId = info.lastInsertRowid;
+        } else {
+            roomId = foundRoom.id;
         }
+
+        // Ajoute le user à la room (table room_members)
+        const userId = user.userId;
+        const addMember = db.prepare('INSERT OR IGNORE INTO room_members (room_id, user_id) VALUES (?, ?)');
+        addMember.run(roomId, userId);
+
+        // Update user's room côté state
+        user.room = room;
+        socket.join(room);
+
+        // Récupère les users de la room depuis la base
+        const usersStmt = db.prepare(`SELECT u.id, u.username FROM users u JOIN room_members rm ON u.id = rm.user_id WHERE rm.room_id = ?`);
+        const usersInRoom = usersStmt.all(roomId);
 
         socket.emit('message', buildMessage("INFO", "Vous avez rejoint : " + room))
         io.to(room).emit('message', buildMessage("INFO", name + " joined the room"))
 
         // Update current room
         io.to(room).emit('userList', {
-            users: UsersState.getUsersInRoom(room)
-        })
+            users: usersInRoom
+        });
 
+        // Liste des rooms actives
+        const activeRoomsStmt = db.prepare('SELECT r.room_name, COUNT(rm.user_id) as userCount FROM rooms r LEFT JOIN room_members rm ON r.id = rm.room_id GROUP BY r.id');
+        const activeRooms = activeRoomsStmt.all();
         io.emit('roomList', {
-            rooms: UsersState.getActiveRooms().map(room => ({
-                name: room,
-                userCount: UsersState.getUsersInRoom(room).length
-            }))
-        })
+            rooms: activeRooms
+        });
     })
 
     // Disconnect
