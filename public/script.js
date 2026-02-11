@@ -10,7 +10,7 @@ const usernameDisplay = document.querySelector("#current-username")
 
 // Should be useless now, but j'ai pas envie de retirer en real
 if (!username || username.trim() === "") {
-    window.location.href = 'register_user/register.html'
+    window.location.href = '/'
 } else {
     socket.emit('verify-session', username)
 }
@@ -70,7 +70,7 @@ document.querySelector('.message-form')
 disconnect_button.addEventListener("click", (e) => {
     e.preventDefault()
     localStorage.removeItem("username")
-    window.location.href = 'connexion.html'
+    window.location.href = 'connexion/login.html'
 })
 
 socket.on('message', (data) => {
