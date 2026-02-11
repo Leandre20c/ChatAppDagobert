@@ -60,16 +60,15 @@ const UsersState = {
     }
 }
 
-app.use('/', express.static('public', { index: '../public/register_user/register.html' }));
+// On rend tout accessible avec express
+app.use(express.static('public'))
 
-app.get('/', (req, res) => {
-    res.send('Le serveur fonctionne correctement')
-})
-
+// On demarre la bestiole
 http.listen(3000, () => {
     console.log('Serveur lancé sur http://localhost:3000')
 })
 
+// Tous les events
 io.on('connection', (socket) => {
     console.log('User ' + socket.id + ' connected')
 
@@ -80,7 +79,17 @@ io.on('connection', (socket) => {
         if (result.success === true) {
             socket.emit('register-success')
         } else {
-            socket.emit('register-error', result.error)
+            socket.emit('connexion-error', result.error)
+        }
+    })
+
+    socket.on('login', async ({ username, password}) => {
+        const result = await UserDB.login(username, password)
+
+        if (result.success === true) {
+            socket.emit('login-success')
+        } else {
+            socket.emit('connexion-error', result.error)
         }
     })
 

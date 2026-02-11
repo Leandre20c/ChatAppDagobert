@@ -8,6 +8,7 @@ const usersList = document.querySelector('.user-list')
 const roomList = document.querySelector('.room-list')
 const usernameDisplay = document.querySelector("#current-username")
 
+// Should be useless now, but j'ai pas envie de retirer en real
 if (!username || username.trim() === "") {
     window.location.href = 'register_user/register.html'
 } else {
@@ -18,7 +19,7 @@ if (!username || username.trim() === "") {
 socket.on('session-invalid', () => {
     localStorage.removeItem('username')
     alert('Votre session a expiré, veuillez vous reconnecter')
-    window.location.href = 'register_user/register.html'
+    window.location.href = '/'
 })
 
 // If session is valid
