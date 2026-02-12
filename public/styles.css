@@ -48,7 +48,8 @@
     --clr-info-a20: #92b2e5;
 
     /** Layout */
-    --sidebar-width: 200px;
+    --sidebar-nav-width: 85px;
+    --sidebar-content-width: 280px;
 }
 
 * {
@@ -68,14 +69,94 @@ body {
     overflow: hidden;
 }
 
-/* ===== SIDEBAR ===== */
-.sidebar {
+/* ===== SIDEBAR NAVIGATION (gauche) ===== */
+.sidebar-nav {
     position: fixed;
     left: 0;
     top: 0;
-    width: var(--sidebar-width);
+    width: var(--sidebar-nav-width);
     height: 100vh;
     background-color: var(--clr-surface-a10);
+    display: flex;
+    flex-direction: column;
+    z-index: 1001;
+    border-right: 1px solid var(--clr-surface-a20);
+    padding: 1.5rem 0;
+}
+
+.nav-item {
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--clr-surface-a50);
+    font-size: 0.95rem;
+    font-weight: 400;
+    position: relative;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 0;
+    background: linear-gradient(135deg, var(--clr-primary-a20), var(--clr-primary-a30));
+    border-radius: 0 3px 3px 0;
+    transition: height 0.2s ease;
+}
+
+.nav-item:hover {
+    background-color: var(--clr-surface-a20);
+    color: var(--clr-light-a0);
+}
+
+.nav-item.active {
+    background-color: var(--clr-surface-tonal-a10);
+    color: var(--clr-primary-a30);
+}
+
+.nav-item.active::before {
+    height: 70%;
+}
+
+.nav-item i {
+    font-size: 1.1rem;
+    width: 24px;
+    text-align: center;
+}
+
+.nav-item span {
+    flex: 1;
+}
+
+/* Profile item en bas */
+.nav-item[data-view="profile"] {
+    margin-top: auto;
+    border-top: 1px solid var(--clr-surface-a20);
+    padding-top: 1.5rem;
+}
+
+.nav-item[data-view="profile"] .user-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ===== SIDEBAR CONTENT (milieu) ===== */
+.sidebar-content {
+    position: fixed;
+    left: var(--sidebar-nav-width);
+    top: 0;
+    width: var(--sidebar-content-width);
+    height: 100vh;
+    background-color: var(--clr-surface-a0);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -83,152 +164,41 @@ body {
     border-right: 1px solid var(--clr-surface-a20);
 }
 
-.sidebar-header {
-    padding: 2rem 1.5rem 1.5rem;
-    border-bottom: 1px solid var(--clr-surface-a20);
-    text-align: center;
+/* Toutes les vues sont cachées par défaut */
+.sidebar-content > div {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+    padding: 1.5rem;
 }
 
-.sidebar-logo {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 1rem;
-    background: linear-gradient(135deg, var(--clr-primary-a10), var(--clr-primary-a30));
-    border-radius: 15px;
+/* Seule la vue active est visible */
+.sidebar-content > div.active {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8rem;
-    color: var(--clr-light-a0);
 }
 
-.sidebar-title {
-    font-size: 1.5rem;
+.sidebar-content h3 {
+    font-size: 1.25rem;
     font-weight: 500;
     color: var(--clr-light-a0);
-    margin-bottom: 0.25rem;
-}
-
-.sidebar-subtitle {
-    font-size: 0.85rem;
-    color: var(--clr-surface-a50);
-}
-
-.sidebar-user {
-    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
     border-bottom: 1px solid var(--clr-surface-a20);
-    display: flex;
-    align-items: center;
-    gap: 1rem;
 }
 
-.user-avatar {
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    background: var(--clr-primary-a20);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    color: var(--clr-light-a0);
-    flex-shrink: 0;
-}
-
-.user-info {
+/* Liste des rooms dans la sidebar content */
+.room-list,
+.dm-list,
+.friends-list {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
-    overflow: hidden;
-}
-
-.user-name {
-    font-weight: 500;
-    color: var(--clr-light-a0);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.user-status {
-    font-size: 0.8rem;
-    color: var(--clr-success-a10);
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
-
-.user-status i {
-    font-size: 0.5rem;
-    color: var(--clr-success-a10);
-}
-
-.sidebar-section {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--clr-surface-a20);
-    flex: 1;
+    gap: 0.75rem;
     overflow-y: auto;
 }
 
-.section-title {
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    color: var(--clr-surface-a50);
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    letter-spacing: 0.5px;
-}
-
-.section-title i {
-    color: var(--clr-primary-a30);
-}
-
-.room-list,
-.user-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.sidebar-footer {
-    padding: 1.5rem;
-    margin-top: auto;
-}
-
-.sidebar-button {
-    width: 100%;
-    padding: 0.875rem 1rem;
-    background-color: var(--clr-danger-a0);
-    color: var(--clr-light-a0);
-    border: none;
-    border-radius: 10px;
-    font-family: "Ubuntu", sans-serif;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.6rem;
-}
-
-.sidebar-button:hover {
-    background-color: var(--clr-danger-a10);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(156, 33, 33, 0.3);
-}
-
-.sidebar-button i {
-    color: var(--clr-light-a0);
-}
-
-/* ===== MAIN CONTENT ===== */
+/* ===== MAIN CONTENT (adapté pour les deux sidebars) ===== */
 .main-content {
-    margin-left: var(--sidebar-width);
+    margin-left: calc(var(--sidebar-nav-width) + var(--sidebar-content-width));
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -274,34 +244,9 @@ body {
     color: var(--clr-primary-a30);
 }
 
-.form-join-room {
-    display: flex;
-    gap: 0.75rem;
-    flex: 1;
-    max-width: 400px;
-}
-
-.form-join-room input {
-    flex: 1;
-    padding: 0.75rem 1rem;
-    background-color: var(--clr-surface-a20);
-    border: 1px solid var(--clr-surface-a30);
-    border-radius: 10px;
-    color: var(--clr-light-a0);
-    font-family: "Ubuntu", sans-serif;
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-}
-
-.form-join-room input:focus {
-    outline: none;
-    border-color: var(--clr-primary-a20);
-    background-color: var(--clr-surface-a10);
-}
-
-.form-join-room button {
+.sidebar-button {
     padding: 0.75rem 1.5rem;
-    background-color: var(--clr-primary-a20);
+    background-color: var(--clr-danger-a0);
     color: var(--clr-light-a0);
     border: none;
     border-radius: 10px;
@@ -312,17 +257,101 @@ body {
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    white-space: nowrap;
+    justify-content: center;
+    gap: 0.6rem;
 }
 
-.form-join-room button:hover {
-    background-color: var(--clr-primary-a30);
+.sidebar-button:hover {
+    background-color: var(--clr-danger-a10);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(156, 33, 33, 0.3);
+}
+
+.sidebar-button i {
+    color: var(--clr-light-a0);
+}
+
+
+/* ===== Active rooms fields ===== */
+.rooms-fields-area {
+    width: 100%;
+    margin-bottom: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.form-create-room,
+.form-find-room {
+    background-color: var(--clr-surface-a10);
+    border-radius: 30px;
+    padding: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.form-create-room input,
+.form-find-room input {
+    flex: 1;
+    background-color: transparent;
+    border: none;
+    color: var(--clr-light-a0);
+    font-family: "Ubuntu", sans-serif;
+    font-size: 0.9rem;
+    padding: 0.25rem 0.5rem;
+    min-width: 0;
+}
+
+.form-create-room input:focus,
+.form-find-room input:focus {
+    outline: none;
+}
+
+.form-create-room input::placeholder,
+.form-find-room input::placeholder {
+    color: var(--clr-surface-a50);
+}
+
+.form-create-room button,
+.form-find-room button {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background-color: var(--clr-surface-a20);
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.form-create-room button:hover,
+.form-find-room button:hover {
+    background-color: var(--clr-surface-a30);
     transform: translateY(-2px);
 }
 
-.form-join-room button i {
-    color: var(--clr-light-a0);
+.form-create-room button i,
+.form-find-room button i {
+    color: var(--clr-surface-a50);
+    font-size: 1rem;
+}
+
+.form-create-room button:hover i,
+.form-find-room button:hover i {
+    transform: scale(1.1);
+}
+
+.view-rooms h5 {
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--clr-surface-a50);
+    margin-bottom: 1rem;
+    letter-spacing: 0.5px;
 }
 
 .content-area {
@@ -355,6 +384,18 @@ body {
     padding: 1.5rem 1rem;
     border-radius: 15px;
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 .message-form {
     display: flex;
@@ -487,7 +528,6 @@ body {
     word-wrap: break-word;
 }
 
-
 /* ===== ROOMITEM ===== */
 .roomItem {
     position: relative;
@@ -540,23 +580,35 @@ body {
 }
 
 /* ===== SCROLLBAR ===== */
-.sidebar::-webkit-scrollbar,
+.sidebar-content::-webkit-scrollbar,
+.room-list::-webkit-scrollbar,
+.dm-list::-webkit-scrollbar,
+.friends-list::-webkit-scrollbar,
 .messages-area::-webkit-scrollbar {
     width: 6px;
 }
 
-.sidebar::-webkit-scrollbar-track,
+.sidebar-content::-webkit-scrollbar-track,
+.room-list::-webkit-scrollbar-track,
+.dm-list::-webkit-scrollbar-track,
+.friends-list::-webkit-scrollbar-track,
 .messages-area::-webkit-scrollbar-track {
     background: var(--clr-surface-a10);
 }
 
-.sidebar::-webkit-scrollbar-thumb,
+.sidebar-content::-webkit-scrollbar-thumb,
+.room-list::-webkit-scrollbar-thumb,
+.dm-list::-webkit-scrollbar-thumb,
+.friends-list::-webkit-scrollbar-thumb,
 .messages-area::-webkit-scrollbar-thumb {
     background: var(--clr-surface-a30);
     border-radius: 3px;
 }
 
-.sidebar::-webkit-scrollbar-thumb:hover,
+.sidebar-content::-webkit-scrollbar-thumb:hover,
+.room-list::-webkit-scrollbar-thumb:hover,
+.dm-list::-webkit-scrollbar-thumb:hover,
+.friends-list::-webkit-scrollbar-thumb:hover,
 .messages-area::-webkit-scrollbar-thumb:hover {
     background: var(--clr-surface-a40);
 }

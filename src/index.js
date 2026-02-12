@@ -137,7 +137,8 @@ io.on('connection', (socket) => {
             socket.emit('session-valid', { 
                 username: user.username, 
                 userId: user.id,
-                roomName: userRoom.room_name
+                roomName: userRoom.room_name,
+                roomUserCount: UsersState.getUsersInRoom(userRoom.room_name).length
             })
 
             socket.emit('roomList', {
@@ -223,7 +224,7 @@ io.on('connection', (socket) => {
             })
 
             const result = RoomDB.deleteEmptyRooms()
-            console.log(`${result.deletedCount} rooms removed`)
+            if (result.deletedCount > 0) console.log(`${result.deletedCount} rooms removed.`)
         }
 
         // Update user's room
@@ -267,7 +268,7 @@ io.on('connection', (socket) => {
 
             UsersState.removeUser(socket.id)
             const result = RoomDB.deleteEmptyRooms()
-            console.log(`${result.deletedCount} rooms removed`)
+            if (result.deletedCount > 0) console.log(`${result.deletedCount} rooms removed.`)
 
             io.emit('roomList', {
                 rooms: RoomDB.getAllRooms().map(room => ({

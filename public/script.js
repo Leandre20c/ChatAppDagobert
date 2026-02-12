@@ -5,7 +5,8 @@ const socket = io()
 const message_input = document.getElementById('message-input')
 const chatDisplay = document.querySelector('.chat-display')
 const disconnect_button = document.getElementById("disconnect-button")
-const joined_room = document.getElementById('room-join-input')
+const createRoomInput = document.getElementById('room-create-input')
+const searchRoomInput = document.getElementById('room-search-input')
 const usersList = document.querySelector('.user-list')
 const roomList = document.querySelector('.room-list')
 const usernameDisplay = document.querySelector("#current-username")
@@ -19,6 +20,21 @@ if (!username || username.trim() === "") {
     socket.emit('verify-session', username)
 }
 
+
+document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+        const view = item.dataset.view
+        
+        // Update active nav item
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'))
+        item.classList.add('active')
+        
+        // Show corresponding view
+        document.querySelectorAll('[class^="view-"]').forEach(v => v.classList.remove('active'))
+        document.querySelector(`.view-${view}`).classList.add('active')
+    })
+})
+
 // If there is something wrongggg
 socket.on('session-invalid', () => {
     localStorage.removeItem('username')
@@ -31,7 +47,7 @@ socket.on('session-valid', (userData) => {
     // Afficher le username
     usernameDisplay.textContent = username
     currentRoomName.textContent = userData.roomName
-    memberCount.textContent = ''
+    memberCount.textContent = userData.roomUserCount
     console.log('Connecté en tant que:', userData.username)
 })
 
@@ -69,7 +85,7 @@ function enterRoom(e) {
 }
 
 // When join room is pressed
-document.querySelector('.form-join-room')
+document.querySelector('.form-create-room')
     .addEventListener('submit', enterRoom)
 
 // When send message is pressed

@@ -11,53 +11,68 @@
     <title>DagobertChat</title>
 </head>
 <body>
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div class="sidebar-header">
-            <div class="sidebar-logo">
-                <i class="fa-solid fa-comments"></i>
-            </div>
-            <h1 class="sidebar-title">Dagobert Chat</h1>
-            <p class="sidebar-subtitle">The most premium chat app</p>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar-nav">
+        <div class="nav-item active" data-view="rooms">
+            <i class="fa-solid fa-door-open"></i>
+            <span>Rooms</span>
         </div>
-
-        <div class="sidebar-user">
-            <div class="user-avatar">
-                <i class="fa-solid fa-user"></i>
-            </div>
-            <div class="user-info">
-                <span class="user-name" id="current-username">Username</span>
-                <span class="user-status">
-                    <i class="fa-solid fa-circle"></i>Online
-                </span>
-            </div>
+        <div class="nav-item" data-view="dms">
+            <i class="fa-solid fa-message"></i>
+            <span>DMs</span>
         </div>
-
-        <div class="sidebar-section">
-            <h3 class="section-title">
-                <i class="fa-solid fa-door-open"></i>
-                Active Rooms
-            </h3>
-            <div class="room-list">
-                <!-- Rooms -->
-            </div>
+        <div class="nav-item" data-view="friends">
+            <i class="fa-solid fa-user-group"></i>
+            <span>Friends</span>
         </div>
-
-        <div class="sidebar-section">
-            <h3 class="section-title">
-                <i class="fa-solid fa-users"></i>
-                Online Users
-            </h3>
-            <div class="user-list">
-                <!-- Users -->
-            </div>
+        <div class="nav-item" data-view="settings">
+            <i class="fa-solid fa-user-group"></i>
+            <span>Settings</span>
         </div>
+        <div class="nav-item" data-view="profile">
+            <i class="fa-solid fa-user-group"></i>
+            <span class="user-name" id="current-username">Username</span>
+        </div>
+    </aside>
 
-        <div class="sidebar-footer">
-            <button class="sidebar-button" id="disconnect-button">
-                <i class="fa-solid fa-right-from-bracket"></i>
-                Disconnect
-            </button>
+    <!-- Sidebar for display rooms, private messages -->
+    <aside class="sidebar-content">
+        <!-- Vue Rooms -->
+        <div class="view-rooms active">
+            <div class="rooms-fields-area">
+                <div class="create-room-field">
+                    <form class="form-create-room">
+                        <input id="room-create-input" autocomplete="off" type="text" placeholder="Create a room..."/>
+                        <button type="submit">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </form>
+                </div>
+                <div class="search-room-field">
+                    <form class="form-find-room">
+                        <input id="room-search-input" autocomplete="off" type="text" placeholder="Search for a room..."/>
+                        <button type="submit">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <h5>Active Rooms</h5>
+            <div class="room-list"></div>
+            <!-- Room list -->
+
+        </div>
+        
+        <!-- Vue DMs -->
+        <div class="view-dms">
+            <h3>Direct Messages</h3>
+            <div class="dm-list"></div>
+        </div>
+        
+        <!-- Vue Friends -->
+        <div class="view-friends">
+            <h3>Friends</h3>
+            <div class="friends-list"></div>
         </div>
     </aside>
 
@@ -71,13 +86,10 @@
                     <span id="member-count">0</span>
                 </span>
             </div>
-            <form class="form-join-room">
-                <input id="room-join-input" autocomplete="off" type="text" placeholder="Create a room..."/>
-                <button type="submit">
-                    <i class="fa-solid fa-plus"></i>
-                    Create
-                </button>
-            </form>
+            <button class="sidebar-button" id="disconnect-button">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                Disconnect
+            </button>
         </div>
 
         <div class="content-area"> 
