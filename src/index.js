@@ -137,8 +137,7 @@ io.on('connection', (socket) => {
             socket.emit('session-valid', { 
                 username: user.username, 
                 userId: user.id,
-                roomName: userRoom.room_name,
-                roomUserCount: UsersState.getUsersInRoom(userRoom.room_name).length
+                roomName: userRoom.room_name
             })
 
             socket.emit('roomList', {
@@ -146,6 +145,10 @@ io.on('connection', (socket) => {
                     ...room,
                     userCount: UsersState.getUsersInRoom(room.room_name).length
                 }))
+            })
+
+            socket.emit('userList', {
+                users: UsersState.getUsersInRoom(userRoom.room_name)
             })
 
             broadcastRoomList()
@@ -158,6 +161,64 @@ io.on('connection', (socket) => {
             // User is not in the db
             socket.emit('session-invalid')
         }
+    })
+
+    socket.on('try-create-room', ({roomName}) => {
+        const user = UsersState.getBySocketId(socket.id)
+        
+        if (!user) {
+            socket.emit('create-room-failed', {errorMessage: 'You must be connected.'})
+            return
+        }
+
+        if (!roomName || roomName.trim() === '') {
+            socket.emit('create-room-failed', {errorMessage: 'Room name cannot be empty.'})
+            return
+        }
+
+        const normalizedRoomName = roomName.trim().charAt(0).toUpperCase() + roomName.trim().slice(1).toLowerCase()
+
+        // Check if room already exists
+        const existingRoom = db.prepare('SELECT id FROM rooms WHERE room_name = ?').get(normalizedRoomName)
+        if (existingRoom) {
+            socket.emit('create-room-failed', {errorMessage: 'This room already exists.'})
+            return
+        }
+
+        // Create the room
+        const result = RoomDB.createRoom(user.userId, normalizedRoomName)
+        
+        if (!result.success) {
+            socket.emit('create-room-failed', {errorMessage: result.error})
+            return
+        }
+
+        // Join the new room (same logic as enterRoom)
+        const prevRoom = user.room
+
+        // Leave previous room
+        if (prevRoom != null) {
+            socket.leave(prevRoom)
+            io.to(prevRoom).emit('message', buildMessage('INFO', user.username + ' left the room'))
+            broadcastUserList(prevRoom)
+            
+            const deleteResult = RoomDB.deleteEmptyRooms()
+            if (deleteResult.deletedCount > 0) console.log(`${deleteResult.deletedCount} rooms removed.`)
+        }
+
+        // Update user's room
+        user.room = normalizedRoomName
+        socket.join(normalizedRoomName)
+
+        // Notify
+        socket.emit('message', buildMessage("INFO", "You have created and joined the room " + normalizedRoomName))
+        socket.emit('roomChanged', normalizedRoomName)
+
+        // Update lists
+        broadcastUserList(normalizedRoomName)
+        broadcastRoomList()
+
+        socket.emit('create-room-success')
     })
 
     // When user send message

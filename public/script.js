@@ -7,7 +7,7 @@ const chatDisplay = document.querySelector('.chat-display')
 const disconnect_button = document.getElementById("disconnect-button")
 const createRoomInput = document.getElementById('room-create-input')
 const searchRoomInput = document.getElementById('room-search-input')
-const usersList = document.querySelector('.user-list')
+//const usersList = document.querySelector('.user-list')
 const roomList = document.querySelector('.room-list')
 const usernameDisplay = document.querySelector("#current-username")
 const currentRoomName = document.querySelector('#current-room-name')
@@ -47,7 +47,6 @@ socket.on('session-valid', (userData) => {
     // Afficher le username
     usernameDisplay.textContent = username
     currentRoomName.textContent = userData.roomName
-    memberCount.textContent = userData.roomUserCount
     console.log('Connecté en tant que:', userData.username)
 })
 
@@ -73,19 +72,28 @@ function sendMessage(e) {
     chatDisplay.scrollTop = chatDisplay.scrollHeight;
 }
 
-function enterRoom(e) {
+function tryCreateRoom(e) {
     e.preventDefault()
-    if (joined_room.value.trim() !== '') {
-        socket.emit('enterRoom', {
-            name: username,
-            roomName: joined_room.value
+    
+    if (createRoomInput.value.trim() !== '') {
+        socket.emit('try-create-room', { 
+            roomName: createRoomInput.value.trim()
         })
-        joined_room.value = ''
+        createRoomInput.value = ''
     }
 }
 
-// When join room is pressed
-createRoomInput.addEventListener('submit', enterRoom)
+// When create room is pressed
+document.querySelector('.form-create-room')
+    .addEventListener('submit', tryCreateRoom)
+
+socket.on('create-room-success', () => {
+    console.log('Room created successfully!')
+})
+
+socket.on('create-room-failed', ({errorMessage}) => {
+    alert(errorMessage)
+})
 
 // When send message is pressed
 document.querySelector('.message-form')
@@ -141,7 +149,7 @@ socket.on('message', (data) => {
 })
 
 socket.on('userList', ({ users }) => {
-    showUsers(users)
+    //showUsers(users)
     memberCount.textContent = users.length
 })
 
