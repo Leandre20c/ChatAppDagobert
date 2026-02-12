@@ -9,6 +9,8 @@ const joined_room = document.getElementById('room-join-input')
 const usersList = document.querySelector('.user-list')
 const roomList = document.querySelector('.room-list')
 const usernameDisplay = document.querySelector("#current-username")
+const currentRoomName = document.querySelector('#current-room-name')
+const memberCount = document.querySelector('#member-count')
 
 // Should be useless now, but j'ai pas envie de retirer en real
 if (!username || username.trim() === "") {
@@ -27,7 +29,9 @@ socket.on('session-invalid', () => {
 // If session is valid
 socket.on('session-valid', (userData) => {
     // Afficher le username
-    usernameDisplay.textContent = username 
+    usernameDisplay.textContent = username
+    currentRoomName.textContent = userData.room.room_name
+    memberCount.textContent = ''
     console.log('Connecté en tant que:', userData.username)
 })
 
@@ -54,7 +58,7 @@ function enterRoom(e) {
     if (joined_room.value.trim() !== '') {
         socket.emit('enterRoom', {
             name: username,
-            room: joined_room.value
+            roomName: joined_room.value
         })
         joined_room.value = ''
     }
@@ -119,6 +123,7 @@ socket.on('message', (data) => {
 
 socket.on('userList', ({ users }) => {
     showUsers(users)
+    memberCount.textContent = users.length
 })
 
 socket.on('roomList', ({ rooms }) => {
@@ -147,17 +152,17 @@ function showRooms(rooms) {
             // Room item content
             roomDiv.innerHTML = `
                 <span class="roomItem--count"><i class="fa-solid fa-user connected-user-icon"></i>${room.userCount}</span>
-                <span class="roomItem--name">${room.name}</span>
+                <span class="roomItem--name">${room.room_name}</span>
             `
             
             // Tooltip
-            roomDiv.title = `Click to join ${room.name} (${room.userCount} user${room.userCount > 1 ? 's' : ''})`
+            roomDiv.title = `Click to join ${room.room_name} (${room.userCount} user${room.userCount > 1 ? 's' : ''})`
             
             // Click action
             roomDiv.addEventListener('click', () => {
                 socket.emit('enterRoom', {
                     name: username,
-                    room: room.name
+                    room: room.room_name
                 })
             })
             

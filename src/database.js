@@ -19,12 +19,13 @@ db.exec(`
     CREATE TABLE IF NOT EXISTS rooms (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         room_name TEXT UNIQUE NOT NULL,
+        is_permanent BOOLEAN DEFAULT 0,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
     CREATE TABLE IF NOT EXISTS room_members (
         room_id INTEGER NOT NULL,
-        user_id INTEGER NOT NULL,
+        user_id INTEGER NOT null,
         joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (room_id, user_id),
         FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE,
@@ -104,10 +105,155 @@ function createMessageDB(database) {
 
 const MessageDB = createMessageDB(db)
 
+
+function initializeDatabase(database) {
+    const stmt = database.prepare('SELECT id FROM rooms WHERE room_name = ?')
+    const generalRoom = stmt.get('General')
+    
+    if (!generalRoom) {
+        const insertStmt = database.prepare('INSERT INTO rooms (room_name, is_permanent) VALUES (?, 1)')
+        insertStmt.run('General')
+        console.log('Room "General" créée')
+    }
+}
+
+
+function createRoomDB(database) {
+    // Internal helper
+    const normalizeRoomName = (roomName) => {
+        const trimmed = roomName.trim()
+        return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase()
+    }
+
+    const addUserToRoom = (userId, roomId) => {
+        database.prepare('DELETE FROM room_members WHERE user_id = ?').run(userId)
+        database.prepare('INSERT INTO room_members (user_id, room_id) VALUES (?, ?)').run(userId, roomId)
+    }
+
+    const addRoom = (roomName) => {
+        const normalized = normalizeRoomName(roomName)
+        const stmt = database.prepare('INSERT INTO rooms (room_name) VALUES (?)')
+        const result = stmt.run(normalized)
+        return result.lastInsertRowid
+    }
+
+    return {
+        createRoom(userId, roomName) {
+            try {
+                const roomId = addRoom(roomName)
+                try {
+                    addUserToRoom(userId, roomId)
+                } catch (error) {
+                    database.prepare('DELETE FROM rooms WHERE id = ?').run(roomId)
+                    return { success: false, error: 'Error adding user to room.' }
+                }
+                return { success: true, roomId: roomId }
+            } catch (error) {
+                return { success: false, error: 'This room already exists.' }
+            }
+        },
+
+        deleteRoom(roomId) {
+            const stmt = database.prepare('SELECT * FROM rooms WHERE id = ?')
+            const room = stmt.get(roomId)
+
+            if (!room) {
+                return { success: false, error: 'Room does not exists' }
+            }
+
+            if (room.is_permanent) {
+                return { success: false, error: 'Cannot delete permanent room' }
+            }
+        
+            database.prepare('DELETE FROM rooms WHERE id = ?').run(roomId)
+
+            return { success: true }
+        },
+
+        joinRoomById(userId, roomId) {
+            try {
+                const room = database.prepare('SELECT id FROM rooms WHERE id = ?').get(roomId)
+                
+                if (!room) {
+                    return { success: false, error: 'Room does not exist' }
+                }
+                
+                addUserToRoom(userId, roomId)
+                
+                return { success: true, roomId: roomId }
+            } catch (error) {
+                return { success: false, error: 'Error joining room.' }
+            }
+        },
+        
+        joinRoomByName(userId, roomName) {
+            try {
+                const normalized = normalizeRoomName(roomName)
+                let room = database.prepare('SELECT id FROM rooms WHERE room_name = ?').get(normalized)
+                let roomId
+
+                if (!room) {
+                    roomId = addRoom(normalized)
+                } else {
+                    roomId = room.id
+                }
+                
+                addUserToRoom(userId, roomId)
+                
+                return { success: true, roomId: roomId }
+            } catch (error) {
+                return { success: false, error: 'Error joining room.' }
+            }
+        },
+
+        leaveRoom(userId) {
+            try {
+                const result = database.prepare('DELETE FROM room_members WHERE user_id = ?').run(userId)
+                
+                if (result.changes === 0) {
+                    return { success: false, error: 'User is not in any room.' }
+                }
+            
+                return { success: true }
+            } catch (error) {
+                return { success: false, error: 'Error leaving room.' }
+            }
+        },
+
+        getAllRoomMessages() {
+            // TODO
+        },
+
+        getAllRooms() {
+            const stmt = database.prepare('SELECT id, room_name, created_at FROM rooms ORDER BY created_at DESC')
+            return stmt.all()
+        },
+
+        getUsersInRoom(roomId) {
+
+        },
+
+        deleteEmptyRooms() {
+            const stmt = database.prepare(`
+                DELETE FROM rooms 
+                WHERE id NOT IN (SELECT DISTINCT room_id FROM room_members)
+                AND is_permanent = 0
+            `)
+            const result = stmt.run()
+            return { success: true, deletedCount: result.changes }
+        }
+    }
+}
+
+const RoomDB = createRoomDB(db)
+initializeDatabase(db)
+
 module.exports = { 
     UserDB, 
-    MessageDB, 
-    createUserDB,      // Pour les tests
-    createMessageDB,   // Pour les tests
-    db                 // db classique pour index.js
+    MessageDB,
+    RoomDB,
+    createUserDB,
+    createMessageDB,
+    createRoomDB,
+    db
 }

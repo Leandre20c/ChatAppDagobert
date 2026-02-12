@@ -2,8 +2,18 @@ const express = require('express')
 const app = express()
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
-const { UserDB, MessageDB, db } = require('./database')
-const rooms = []
+const { UserDB, MessageDB, RoomDB, db } = require('./database')
+
+let activeRooms = []
+
+function loadRooms() {
+    const stmt = db.prepare('SELECT id, room_name, is_permanent FROM rooms')
+    activeRooms = stmt.all()
+    console.log(`${activeRooms.length} room(s) chargée(s):`, activeRooms.map(r => r.room_name))
+}
+
+// Load all permanents rooms
+loadRooms()
 
 // State
 const UsersState = {
@@ -15,7 +25,7 @@ const UsersState = {
 
     // Add/modify a connected user
     addUser: function(socketId, userId, username) {
-        const user = { socketId, userId, username, room: 'general', status: 'online' }
+        const user = { socketId, userId, username, room: 'General', status: 'online' }
         this.users = [...this.users.filter(u => u.socketId !== socketId), user]
         return user
     },
@@ -83,6 +93,7 @@ io.on('connection', (socket) => {
         }
     })
 
+    // On login
     socket.on('login', async ({ username, password}) => {
         const result = await UserDB.login(username, password)
 
@@ -99,11 +110,57 @@ io.on('connection', (socket) => {
         const user = stmt.get(username)
 
         if (user) {
-            // The user exists, add it to users
+            // Check where is the user
+            const roomStmt = db.prepare(`
+                SELECT r.id, r.room_name 
+                FROM room_members rm
+                JOIN rooms r ON rm.room_id = r.id
+                WHERE rm.user_id = ?
+            `)
+            let userRoom = roomStmt.get(user.id)
+
+            // If no room attributed, move him in general
+            if (!userRoom) {
+                const generalRoom = db.prepare('SELECT id, room_name FROM rooms WHERE room_name = ?').get('General')
+                if (generalRoom) {
+                    RoomDB.joinRoomById(user.id, generalRoom.id)
+                    userRoom = generalRoom
+                }
+            }
+
             UsersState.addUser(socket.id, user.id, user.username)
-            socket.emit('session-valid', { username: user.username, userId: user.id })
+            const userState = UsersState.getBySocketId(socket.id)
+            userState.room = userRoom.room_name
+
+            socket.join(userRoom.room_name)
+
+            socket.emit('session-valid', { 
+                username: user.username, 
+                userId: user.id,
+                roomName: userRoom.room_name
+            })
+
+            socket.emit('roomList', {
+                rooms: RoomDB.getAllRooms().map(room => ({
+                    id: room.id,
+                    room_name: room.room_name,
+                    isPermanent: room.is_permanent,
+                    userCount: UsersState.getUsersInRoom(room.room_name).length
+                }))
+            })
+
+            socket.emit('userList', {
+                users: UsersState.getUsersInRoom(userRoom.room_name)
+            })
+
+            socket.to(userRoom.room_name).emit('message', buildMessage('INFO', `${username} a rejoint le salon`))
+
+            io.to(userRoom.room_name).emit('userList', {
+                users: UsersState.getUsersInRoom(userRoom.room_name)
+            })
+
         } else {
-            // User is not in the db :(((
+            // User is not in the db
             socket.emit('session-invalid')
         }
     })
@@ -125,7 +182,7 @@ io.on('connection', (socket) => {
     })
 
     // When user enter a room
-    socket.on('enterRoom', ({name, room}) => {
+    socket.on('enterRoom', async ({name, roomName}) => {
         const user = UsersState.getBySocketId(socket.id)
         
         if (!user) {
@@ -133,50 +190,60 @@ io.on('connection', (socket) => {
             return
         }
 
-        if (!room || room.trim() === '') {
+        if (!roomName || roomName.trim() === '') {
             socket.emit('error', 'Nom de room invalide')
+            return
+        }
+
+        const normalizedRoomName = roomName.trim().charAt(0).toUpperCase() + roomName.trim().slice(1).toLowerCase()
+
+        // Join the room (it creates one if the room doesnt exists)
+        const result = RoomDB.joinRoomByName(user.userId, normalizedRoomName)
+        if (!result.success) {
+            socket.emit('error', result.error)
             return
         }
 
         const prevRoom = user.room
 
-        if (prevRoom === room) {
-            // Alert the player
+        // Cannot join a room that you are already in
+        if (prevRoom === normalizedRoomName) {
             socket.emit('message', buildMessage("ALERT", "You are already in this room."))
             return
         }
 
+        // Update previous room
         if (prevRoom != null) {
             socket.leave(prevRoom)
             io.to(prevRoom).emit('message', buildMessage('INFO', name + ' leaved the room'))
             
-            // Update previous room
             io.to(prevRoom).emit('userList', {
                 users: UsersState.getUsersInRoom(prevRoom)
             })
+
+            const result = RoomDB.deleteEmptyRooms()
+            console.log(`${result.deletedCount} rooms removed`)
         }
 
         // Update user's room
-        user.room = room
-        socket.join(room)
+        user.room = normalizedRoomName
+        socket.join(normalizedRoomName)
 
-        // If room doesnt exist, add it
-        if (!rooms.includes(room)) {
-            rooms.push(room)
-        }
+        // Tell to everyone exce^pt the client
+        socket.to(normalizedRoomName).emit('message', buildMessage("INFO", name + " joined the room"))
 
-        socket.emit('message', buildMessage("INFO", "Vous avez rejoint : " + room))
-        io.to(room).emit('message', buildMessage("INFO", name + " joined the room"))
+        // Only to client
+        socket.emit('message', buildMessage("INFO", "You have joined the room " + normalizedRoomName))
 
-        // Update current room
-        io.to(room).emit('userList', {
-            users: UsersState.getUsersInRoom(room)
+        // Update lists
+        io.to(normalizedRoomName).emit('userList', {
+            users: UsersState.getUsersInRoom(normalizedRoomName)
         })
 
         io.emit('roomList', {
-            rooms: UsersState.getActiveRooms().map(room => ({
-                name: room,
-                userCount: UsersState.getUsersInRoom(room).length
+            rooms: RoomDB.getAllRooms().map(room => ({
+                ...room,
+                userCount: UsersState.getUsersInRoom(room.room_name).length
             }))
         })
     })
@@ -186,20 +253,22 @@ io.on('connection', (socket) => {
         const user = UsersState.getBySocketId(socket.id)
         
         if (user) {
-            if (user.room) {
-                io.to(user.room).emit('message', buildMessage('INFO', `${user.name} s'est déconnecté`))
-                
-                io.to(user.room).emit('userList', {
-                    users: UsersState.getUsersInRoom(user.room)
-                })
-            }
+            RoomDB.leaveRoom(user.userId)
+
+            io.to(user.room).emit('message', buildMessage('INFO', `${user.name} s'est déconnecté`))
+            
+            io.to(user.room).emit('userList', {
+                users: UsersState.getUsersInRoom(user.room)
+            })
 
             UsersState.removeUser(socket.id)
+            const result = RoomDB.deleteEmptyRooms()
+            console.log(`${result.deletedCount} rooms removed`)
 
             io.emit('roomList', {
-                rooms: UsersState.getActiveRooms().map(room => ({
-                    name: room,
-                    userCount: UsersState.getUsersInRoom(room).length
+                rooms: RoomDB.getAllRooms().map(room => ({
+                    ...room,
+                    userCount: UsersState.getUsersInRoom(room.room_name).length
                 }))
             })
 
