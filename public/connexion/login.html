@@ -10,17 +10,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 
-    <title>DagobertChat</title>
+  <title>DagobertChat</title>
   </head>
   <body>
-    <h1>Register</h1>
-    <form id="log-form">
-        <input type="text" autocomplete="off" id="username" placeholder="Username"/>
-        <input type="password" autocomplete="off" id="password" placeholder="Password"/>
-        <button>Log-in</button>
-    </form>
+    <h1>Login</h1>
+    <div class="main-form">
+      <form id="log-form">
+          <input type="text" autocomplete="off" id="username" placeholder="Username"/>
+          <input type="password" autocomplete="off" id="password" placeholder="Password"/>
+          <button>Log-in</button>
+      </form>
+    </div>
 
-    <p>Pas encore de compte ?<a href="register.html">S'inscrire</a></p>
+    <p>You don't have an account yet?<a href="register.html">Register</a></p>
     
 
     <script src="/socket.io/socket.io.js"></script>

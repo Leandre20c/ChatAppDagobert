@@ -45,14 +45,12 @@ function logUser(e) {
 
 socket.on('register-success', () => {
     console.log('Register success')
-    alert('Account created!')
     localStorage.setItem('username', usernameInput.value.trim())
     window.location.href = '../chat.html'
 })
 
 socket.on('login-success', () => {
     console.log('Login success')
-    alert('Connected!')
     localStorage.setItem('username', usernameInput.value.trim())
     window.location.href = '../chat.html'
 })
