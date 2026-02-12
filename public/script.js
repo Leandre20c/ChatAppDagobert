@@ -30,11 +30,14 @@ socket.on('session-invalid', () => {
 socket.on('session-valid', (userData) => {
     // Afficher le username
     usernameDisplay.textContent = username
-    currentRoomName.textContent = userData.room.room_name
+    currentRoomName.textContent = userData.roomName
     memberCount.textContent = ''
     console.log('Connecté en tant que:', userData.username)
 })
 
+socket.on('roomChanged', (roomName) => {
+    currentRoomName.textContent = roomName
+})
 
 socket.on('error', (errorMessage) => {
     alert(errorMessage)
@@ -51,6 +54,7 @@ function sendMessage(e) {
         message_input.value = ''
     }
     message_input.focus()
+    chatDisplay.scrollTop = chatDisplay.scrollHeight;
 }
 
 function enterRoom(e) {
@@ -151,18 +155,18 @@ function showRooms(rooms) {
 
             // Room item content
             roomDiv.innerHTML = `
-                <span class="roomItem--count"><i class="fa-solid fa-user connected-user-icon"></i>${room.userCount}</span>
+                <span class="roomItem--count"><i class="fa-solid fa-user connected-user-icon fa-sm"></i>${room.userCount}</span>
                 <span class="roomItem--name">${room.room_name}</span>
             `
             
             // Tooltip
-            roomDiv.title = `Click to join ${room.room_name} (${room.userCount} user${room.userCount > 1 ? 's' : ''})`
+            roomDiv.title = `Click to join ${room.room_name}.`
             
             // Click action
-            roomDiv.addEventListener('click', () => {
+            roomDiv.addEventListener('click', () => {  
                 socket.emit('enterRoom', {
                     name: username,
-                    room: room.room_name
+                    roomName: room.room_name
                 })
             })
             

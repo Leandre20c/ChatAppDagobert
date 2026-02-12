@@ -9,7 +9,7 @@ let activeRooms = []
 function loadRooms() {
     const stmt = db.prepare('SELECT id, room_name, is_permanent FROM rooms')
     activeRooms = stmt.all()
-    console.log(`${activeRooms.length} room(s) chargée(s):`, activeRooms.map(r => r.room_name))
+    console.log(`${activeRooms.length} rooms loaded:`, activeRooms.map(r => r.room_name))
 }
 
 // Load all permanents rooms
@@ -186,12 +186,13 @@ io.on('connection', (socket) => {
         const user = UsersState.getBySocketId(socket.id)
         
         if (!user) {
-            socket.emit('error', 'Vous devez être connecté')
+            socket.emit('error', 'You must be connected.')
             return
         }
 
         if (!roomName || roomName.trim() === '') {
-            socket.emit('error', 'Nom de room invalide')
+            console.log('Invalid room: ', roomName)
+            socket.emit('error', 'Invalid room name: ' + roomName)
             return
         }
 
@@ -229,11 +230,14 @@ io.on('connection', (socket) => {
         user.room = normalizedRoomName
         socket.join(normalizedRoomName)
 
-        // Tell to everyone exce^pt the client
+        // Tell to everyone except the client
         socket.to(normalizedRoomName).emit('message', buildMessage("INFO", name + " joined the room"))
 
         // Only to client
         socket.emit('message', buildMessage("INFO", "You have joined the room " + normalizedRoomName))
+
+        // To display the correct room
+        socket.emit('roomChanged', normalizedRoomName)
 
         // Update lists
         io.to(normalizedRoomName).emit('userList', {
