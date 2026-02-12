@@ -14,7 +14,6 @@ if (logForm) logForm.addEventListener('submit', logUser) // Working better quand
 // Im currently writing this code and I feel like those lines are fire 🔥🔥🔥 <- not chat gpt btw https://emojiterra.com/fr/feu/ bro gave the sources
 // after few tests, j'admet que ça marche pas
 function registerUser(e) {
-    console.log("Try to register user")
     e.preventDefault()
     
     const username = usernameInput.value.trim()
@@ -44,13 +43,13 @@ function logUser(e) {
 }
 
 socket.on('register-success', () => {
-    console.log('Register success')
+    console.log('Register success for ' + socket.id)
     localStorage.setItem('username', usernameInput.value.trim())
     window.location.href = '../chat.html'
 })
 
 socket.on('login-success', () => {
-    console.log('Login success')
+    console.log('Login success for ' + socket.id)
     localStorage.setItem('username', usernameInput.value.trim())
     window.location.href = '../chat.html'
 })

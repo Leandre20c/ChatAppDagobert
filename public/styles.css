@@ -347,20 +347,25 @@ body {
     gap: 0.75rem;
 }
 
-.message-form {
-    padding: 1.5rem 2rem;
+/* ===== Input message fields ===== */
+.intput-message-area {
+    width: calc(100% - 2rem);
+    margin: 1rem;
     background-color: var(--clr-surface-a10);
-    border-top: 1px solid var(--clr-surface-a20);
+    padding: 1.5rem 1rem;
+    border-radius: 15px;
+}
+
+.message-form {
     display: flex;
-    gap: 1rem;
-    align-items: center;
+    flex-direction: row;
+    gap: 1.25rem;
 }
 
 #message-input {
     flex: 1;
-    padding: 1rem 1.25rem;
-    background-color: var(--clr-surface-a20);
-    border: 1px solid var(--clr-surface-a30);
+    background-color: transparent;
+    border: transparent;
     border-radius: 25px;
     color: var(--clr-light-a0);
     font-family: "Ubuntu", sans-serif;
@@ -370,8 +375,6 @@ body {
 
 #message-input:focus {
     outline: none;
-    border-color: var(--clr-primary-a20);
-    background-color: var(--clr-surface-a10);
 }
 
 #send {
@@ -385,7 +388,7 @@ body {
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(32, 145, 38, 0.2);
+    box-shadow: 0 4px 12px rgba(32, 145, 38, 0.0);
 }
 
 #send:hover {
@@ -397,6 +400,23 @@ body {
 #send i {
     color: var(--clr-light-a0);
     font-size: 1.1rem;
+}
+
+#upload-file {
+    width: 50px;
+    height: 50px;
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+#upload-file i {
+    color: var(--clr-surface-a50);
+    font-size: 1.3rem;
 }
 
 /* ===== MESSAGE POSTS ===== */

@@ -120,7 +120,7 @@ input::placeholder {
 }
 
 /* ===== BUTTON STYLES ===== */
-button[type="submit"],
+button,
 button {
     width: 100%;
     padding: 1rem 1.5rem;
@@ -136,14 +136,14 @@ button {
     box-shadow: 0 4px 12px rgba(32, 145, 38, 0.2);
 }
 
-button[type="submit"]:hover,
+button:hover,
 button:hover {
     background: linear-gradient(135deg, var(--clr-primary-a30), var(--clr-primary-a40));
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(32, 145, 38, 0.3);
 }
 
-button[type="submit"]:active,
+button:active,
 button:active {
     transform: translateY(0);
 }
