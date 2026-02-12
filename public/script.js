@@ -85,8 +85,7 @@ function enterRoom(e) {
 }
 
 // When join room is pressed
-document.querySelector('.form-create-room')
-    .addEventListener('submit', enterRoom)
+createRoomInput.addEventListener('submit', enterRoom)
 
 // When send message is pressed
 document.querySelector('.message-form')

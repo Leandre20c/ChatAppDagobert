@@ -143,22 +143,16 @@ io.on('connection', (socket) => {
 
             socket.emit('roomList', {
                 rooms: RoomDB.getAllRooms().map(room => ({
-                    id: room.id,
-                    room_name: room.room_name,
-                    isPermanent: room.is_permanent,
+                    ...room,
                     userCount: UsersState.getUsersInRoom(room.room_name).length
                 }))
             })
 
-            socket.emit('userList', {
-                users: UsersState.getUsersInRoom(userRoom.room_name)
-            })
+            broadcastRoomList()
 
             socket.to(userRoom.room_name).emit('message', buildMessage('INFO', `${username} a rejoint le salon`))
 
-            io.to(userRoom.room_name).emit('userList', {
-                users: UsersState.getUsersInRoom(userRoom.room_name)
-            })
+            broadcastUserList(userRoom.room_name)
 
         } else {
             // User is not in the db
@@ -219,9 +213,7 @@ io.on('connection', (socket) => {
             socket.leave(prevRoom)
             io.to(prevRoom).emit('message', buildMessage('INFO', name + ' leaved the room'))
             
-            io.to(prevRoom).emit('userList', {
-                users: UsersState.getUsersInRoom(prevRoom)
-            })
+            broadcastUserList(prevRoom)
 
             const result = RoomDB.deleteEmptyRooms()
             if (result.deletedCount > 0) console.log(`${result.deletedCount} rooms removed.`)
@@ -241,16 +233,9 @@ io.on('connection', (socket) => {
         socket.emit('roomChanged', normalizedRoomName)
 
         // Update lists
-        io.to(normalizedRoomName).emit('userList', {
-            users: UsersState.getUsersInRoom(normalizedRoomName)
-        })
+        broadcastUserList(normalizedRoomName)
 
-        io.emit('roomList', {
-            rooms: RoomDB.getAllRooms().map(room => ({
-                ...room,
-                userCount: UsersState.getUsersInRoom(room.room_name).length
-            }))
-        })
+        broadcastRoomList()
     })
 
     // Disconnect
@@ -262,20 +247,13 @@ io.on('connection', (socket) => {
 
             io.to(user.room).emit('message', buildMessage('INFO', `${user.name} s'est déconnecté`))
             
-            io.to(user.room).emit('userList', {
-                users: UsersState.getUsersInRoom(user.room)
-            })
+            broadcastUserList(user.room)
 
             UsersState.removeUser(socket.id)
             const result = RoomDB.deleteEmptyRooms()
             if (result.deletedCount > 0) console.log(`${result.deletedCount} rooms removed.`)
 
-            io.emit('roomList', {
-                rooms: RoomDB.getAllRooms().map(room => ({
-                    ...room,
-                    userCount: UsersState.getUsersInRoom(room.room_name).length
-                }))
-            })
+            broadcastRoomList()
 
             console.log(`User ${user.username} (${socket.id}) disconnected`)
         } else {
@@ -294,4 +272,19 @@ function buildMessage(name, text) {
             minute: '2-digit'
         }).format(new Date())
     }
+}
+
+function broadcastRoomList() {
+    io.emit('roomList', {
+        rooms: RoomDB.getAllRooms().map(room => ({
+            ...room,
+            userCount: UsersState.getUsersInRoom(room.room_name).length
+        }))
+    })
+}
+
+function broadcastUserList(roomName) {
+    io.to(roomName).emit('userList', {
+        users: UsersState.getUsersInRoom(roomName)
+    })
 }
