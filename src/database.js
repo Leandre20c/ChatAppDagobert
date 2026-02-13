@@ -37,10 +37,22 @@ db.exec(`
         user_id INTEGER NOT NULL,
         username TEXT NOT NULL,
         room_id INTEGER,
-        message TEXT NOT NULL,
+        message TEXT,
+        message_type TEXT DEFAULT 'USER_MESSAGE',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (room_id) REFERENCES rooms(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS message_attachments  (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        message_id INTEGER NOT NULL,
+        file_path TEXT NOT NULL,
+        file_type TEXT NOT NULL,  -- 'image/jpeg', 'image/png', etc.
+        file_size INTEGER,
+        original_name TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS private_messages (
@@ -93,12 +105,50 @@ const UserDB = createUserDB(db)
 // function so we can create a db for our tests
 function createMessageDB(database) {
     return {
-        save(userId, username, room, message) {
-            // Enregistrer un message
+        save(userId, username, roomId, message, attachmentPath = null, attachmentType = null, attachmentSize = null, originalName = null, messageType = 'USER_MESSAGE') {
+            try {
+                const stmt = database.prepare('INSERT INTO messages (user_id, username, room_id, message, message_type) VALUES (?, ?, ?, ?, ?)')
+                const result = stmt.run(userId, username, roomId, message, messageType)
+                const messageId = result.lastInsertRowid
+                
+                if (attachmentPath) {
+                    const attachStmt = database.prepare(
+                        'INSERT INTO message_attachments \
+                        (message_id, file_path, file_type, file_size, original_name) VALUES (?, ?, ?, ?, ?)'
+                    )
+                    attachStmt.run(messageId, attachmentPath, attachmentType, attachmentSize, originalName)
+                }
+                
+                return { success: true, messageId: messageId }
+            } catch(error) {
+                console.error('DETAILED ERROR:', error.message)
+                return { success: false, error: error.message }
+            }
         },
 
-        getByRoom(room, limit = 50) {
-            // Avoir tous les messages de la room
+        getByRoom(roomId, limit = -1) {
+            try {
+                // get all messages with joined files
+                const stmt = database.prepare(`
+                    SELECT 
+                        m.*,
+                        a.file_path,
+                        a.file_type,
+                        a.file_size,
+                        a.original_name
+                    FROM messages m
+                    LEFT JOIN message_attachments a ON m.id = a.message_id
+                    WHERE m.room_id = ?
+                    ORDER BY m.created_at ASC
+                    ${limit > 0 ? 'LIMIT ?' : ''}
+                `)
+                
+                const messages = limit > 0 ? stmt.all(roomId, limit) : stmt.all(roomId)
+
+                return { success: true, messages: messages }
+            } catch(error) {
+                return { success: false, error: 'Error fetching messages' }
+            }
         }
     }
 }
@@ -107,13 +157,25 @@ const MessageDB = createMessageDB(db)
 
 
 function initializeDatabase(database) {
+    // Create General room
     const stmt = database.prepare('SELECT id FROM rooms WHERE room_name = ?')
     const generalRoom = stmt.get('General')
     
     if (!generalRoom) {
         const insertStmt = database.prepare('INSERT INTO rooms (room_name, is_permanent) VALUES (?, 1)')
         insertStmt.run('General')
-        console.log('Room "General" créée')
+        console.log('Room "General" created')
+    }
+
+    // Create SYSTEM user for INFO/ALERT messages
+    const systemUserStmt = database.prepare('SELECT id FROM users WHERE id = ?')
+    const systemUser = systemUserStmt.get(0)
+    
+    if (!systemUser) {
+        // Insert system user with id = 0
+        const insertSystemUser = database.prepare('INSERT INTO users (id, username, password) VALUES (?, ?, ?)')
+        insertSystemUser.run(0, 'SYSTEM', 'no_password_hash')
+        console.log('SYSTEM user created')
     }
 }
 
@@ -230,7 +292,24 @@ function createRoomDB(database) {
         },
 
         getUsersInRoom(roomId) {
-
+            try {
+                const stmt = database.prepare(`
+                    SELECT 
+                        u.id,
+                        u.username,
+                        rm.joined_at
+                    FROM room_members rm
+                    JOIN users u ON rm.user_id = u.id
+                    WHERE rm.room_id = ?
+                    ORDER BY rm.joined_at ASC
+                `)
+                
+                const users = stmt.all(roomId)
+                
+                return { success: true, users: users }
+            } catch(error) {
+                return { success: false, error: 'Error fetching users in room' }
+            }
         },
 
         deleteEmptyRooms() {

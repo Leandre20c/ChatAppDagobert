@@ -7,34 +7,34 @@ const fs = require('fs')
 const sharp = require('sharp')
 let activeRooms = []
 
-// Pour les images
+// For images
 const multer = require('multer')
 const path = require('path')
 
 const UPLOAD_TEMP_DIR = path.join(__dirname, 'temp_uploads')
 const UPLOAD_FINAL_DIR = path.join(__dirname, '../public/uploads')
 
-//TEMP_UPLAAD AND UPLOADS HAVE TO EXIST FOR SURE
+// TEMP_UPLOAD AND UPLOADS HAVE TO EXIST FOR SURE
 if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
-    console.log('Création du dossier temporaire :', UPLOAD_TEMP_DIR)
+    console.log('Creating temporary folder:', UPLOAD_TEMP_DIR)
     fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true })
 }
 
 if (!fs.existsSync(UPLOAD_FINAL_DIR)) {
-    console.log('Création du dossier final :', UPLOAD_FINAL_DIR)
+    console.log('Creating final folder:', UPLOAD_FINAL_DIR)
     fs.mkdirSync(UPLOAD_FINAL_DIR, { recursive: true })
 }
+
 const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, UPLOAD_TEMP_DIR)
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
-  }
+    destination: function (req, file, cb) {
+        cb(null, UPLOAD_TEMP_DIR)
+    },
+    filename: function (req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
+    }
 })
 const upload = multer({ storage: storage })
-
 
 function loadRooms() {
     const stmt = db.prepare('SELECT id, room_name, is_permanent FROM rooms')
@@ -42,7 +42,7 @@ function loadRooms() {
     console.log(`${activeRooms.length} rooms loaded:`, activeRooms.map(r => r.room_name))
 }
 
-// Load all permanents rooms
+// Load all permanent rooms
 loadRooms()
 
 // State
@@ -74,12 +74,12 @@ const UsersState = {
         return this.users.find(u => u.socketId === socketId)
     },
 
-    // get user by his id (database)
+    // Get user by his id (database)
     getByUserId: function(userId) {
         return this.users.find(u => u.userId === userId)
     },
 
-    // get user by his username
+    // Get user by his username
     getUserByName: function(username) {
         return this.users.find(u => u.username === username)
     },
@@ -100,7 +100,7 @@ const UsersState = {
     }
 }
 
-// On rend tout accessible avec express
+// Make everything accessible with express
 app.use(express.static('public'))
 
 // Photo upload endpoint
@@ -116,7 +116,7 @@ app.post('/upload-photo', upload.single('photo'), async (req, res) => {
             return res.status(401).json({ error: 'User not authenticated' })
         }
 
-        // SHARP CONVERTION
+        // SHARP CONVERSION
         const processedFilename = `img${Date.now()}_${Math.round(Math.random() * 1E9)}.webp`
         const finalFilePath = path.join(UPLOAD_FINAL_DIR, processedFilename)
 
@@ -128,23 +128,53 @@ app.post('/upload-photo', upload.single('photo'), async (req, res) => {
             .webp({ quality: 80 })
             .toFile(finalFilePath)
 
-        // CLEAN TEMPSTORAGE
+        // CLEAN TEMP STORAGE
         fs.unlinkSync(req.file.path)
 
         const publicUrl = `/uploads/${processedFilename}`
 
-        // Emit photo
-        const photoMessage = {
-            name: user.username,
-            text: req.body.message || '',
-            photoUrl: publicUrl,
-            time: new Intl.DateTimeFormat('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit'
-            }).format(new Date())
-        }
+        // Get room info
+        const rooms = RoomDB.getAllRooms()
+        const room = rooms.find(r => r.room_name === user.room)
 
-        io.to(user.room).emit('message', photoMessage)
+        if (room) {
+            // Get file size
+            const stats = fs.statSync(finalFilePath)
+            const fileSize = stats.size
+
+            // Message text
+            const messageText = req.body.message && req.body.message.trim() !== '' 
+                ? req.body.message.trim() 
+                : ''
+
+            // Save photo message to database
+            const result = MessageDB.save(
+                user.userId,
+                user.username,
+                room.id,
+                messageText,
+                publicUrl,
+                'image/webp',
+                fileSize,
+                processedFilename
+            )
+
+            if (result.success) {
+                const messageQuery = db.prepare(`
+                    SELECT 
+                        m.*,
+                        a.file_path,
+                        a.file_type,
+                        a.file_size,
+                        a.original_name
+                    FROM messages m
+                    LEFT JOIN message_attachments a ON m.id = a.message_id
+                    WHERE m.id = ?
+                `).get(result.messageId)
+                
+                io.to(user.room).emit('message', messageQuery)
+            }
+        }
 
         res.json({ success: true, photoUrl: publicUrl })
 
@@ -154,12 +184,12 @@ app.post('/upload-photo', upload.single('photo'), async (req, res) => {
     }
 })
 
-// On demarre la bestiole
+// Start the server
 http.listen(3000, () => {
-    console.log('Serveur lancé sur http://localhost:3000')
+    console.log('Server started on http://localhost:3000')
 })
 
-// Tous les events
+// All events
 io.on('connection', (socket) => {
     console.log('User ' + socket.id + ' connected')
 
@@ -191,7 +221,7 @@ io.on('connection', (socket) => {
         const user = stmt.get(username)
 
         if (user) {
-            // Check where is the user
+            // Check where the user is
             const roomStmt = db.prepare(`
                 SELECT r.id, r.room_name 
                 FROM room_members rm
@@ -200,7 +230,7 @@ io.on('connection', (socket) => {
             `)
             let userRoom = roomStmt.get(user.id)
 
-            // If no room attributed, move him in general
+            // If no room attributed, move him to general
             if (!userRoom) {
                 const generalRoom = db.prepare('SELECT id, room_name FROM rooms WHERE room_name = ?').get('General')
                 if (generalRoom) {
@@ -221,6 +251,12 @@ io.on('connection', (socket) => {
                 roomName: userRoom.room_name
             })
 
+            // Load message history
+            const historyResult = MessageDB.getByRoom(userRoom.id, 50)
+            if (historyResult.success) {
+                socket.emit('messageHistory', historyResult.messages)
+            }
+
             socket.emit('roomList', {
                 rooms: RoomDB.getAllRooms().map(room => ({
                     ...room,
@@ -234,7 +270,11 @@ io.on('connection', (socket) => {
 
             broadcastRoomList()
 
-            socket.to(userRoom.room_name).emit('message', buildMessage('INFO', `${username} a rejoint le salon`))
+            sendMessage(userRoom.room_name, username, `${username} joined the room`, {
+                messageType: MESSAGE_TYPES.USER_JOIN,
+                target: 'others',
+                socketId: socket.id
+            })
 
             broadcastUserList(userRoom.room_name)
 
@@ -280,7 +320,10 @@ io.on('connection', (socket) => {
         // Leave previous room
         if (prevRoom != null) {
             socket.leave(prevRoom)
-            io.to(prevRoom).emit('message', buildMessage('INFO', user.username + ' left the room'))
+            sendMessage(prevRoom, 'INFO', user.username + ' left the room', {
+                isSystemMessage: true,
+                target: 'room'
+            })
             broadcastUserList(prevRoom)
             
             const deleteResult = RoomDB.deleteEmptyRooms()
@@ -292,7 +335,11 @@ io.on('connection', (socket) => {
         socket.join(normalizedRoomName)
 
         // Notify
-        socket.emit('message', buildMessage("INFO", "You have created and joined the room " + normalizedRoomName))
+        sendMessage(normalizedRoomName, "INFO", user.username + " created and joined the room", {
+            isSystemMessage: true,
+            target: 'room'
+        })
+
         socket.emit('roomChanged', normalizedRoomName)
 
         // Update lists
@@ -302,23 +349,28 @@ io.on('connection', (socket) => {
         socket.emit('create-room-success')
     })
 
-    // When user send message
+    // When user sends message
     socket.on('message', (data) => {
         const user = UsersState.getBySocketId(socket.id)
         
         if (!user) {
-            socket.emit('error', 'Vous devez être connecté pour envoyer des messages')
+            socket.emit('error', 'You must be connected to send messages')
             return
         }
 
-        if (user.room) {
-            io.to(user.room).emit('message', buildMessage(data.name, data.text))
-        } else {
-            io.emit('message', buildMessage(data.name, data.text))
+        if (!user.room) {
+            socket.emit('error', 'You must be in a room to send messages')
+            return
         }
+
+        sendMessage(user.room, user.username, data.text, {
+            messageType: MESSAGE_TYPES.USER_MESSAGE,
+            isSystemMessage: false,
+            target: 'room'
+        })
     })
 
-    // When user enter a room
+    // When user enters a room
     socket.on('enterRoom', async ({name, roomName}) => {
         const user = UsersState.getBySocketId(socket.id)
         
@@ -328,14 +380,14 @@ io.on('connection', (socket) => {
         }
 
         if (!roomName || roomName.trim() === '') {
-            console.log('Invalid room: ', roomName)
+            console.log('Invalid room:', roomName)
             socket.emit('error', 'Invalid room name: ' + roomName)
             return
         }
 
         const normalizedRoomName = roomName.trim().charAt(0).toUpperCase() + roomName.trim().slice(1).toLowerCase()
 
-        // Join the room (it creates one if the room doesnt exists)
+        // Join the room (it creates one if the room doesn't exist)
         const result = RoomDB.joinRoomByName(user.userId, normalizedRoomName)
         if (!result.success) {
             socket.emit('error', result.error)
@@ -346,37 +398,62 @@ io.on('connection', (socket) => {
 
         // Cannot join a room that you are already in
         if (prevRoom === normalizedRoomName) {
-            socket.emit('message', buildMessage("ALERT", "You are already in this room."))
+            sendMessage(normalizedRoomName, 'SYSTEM', 'You are already in this room', {
+                messageType: MESSAGE_TYPES.SYSTEM_ALERT,
+                target: 'client',
+                socketId: socket.id
+            })
             return
         }
 
         // Update previous room
         if (prevRoom != null) {
             socket.leave(prevRoom)
-            io.to(prevRoom).emit('message', buildMessage('INFO', name + ' leaved the room'))
+            sendMessage(prevRoom, user.username, `${user.username} left the room`, {
+                messageType: MESSAGE_TYPES.USER_LEAVE,
+                target: 'room'
+            })
             
             broadcastUserList(prevRoom)
 
-            const result = RoomDB.deleteEmptyRooms()
-            if (result.deletedCount > 0) console.log(`${result.deletedCount} rooms removed.`)
+            const deleteResult = RoomDB.deleteEmptyRooms()
+            if (deleteResult.deletedCount > 0) console.log(`${deleteResult.deletedCount} rooms removed.`)
         }
 
         // Update user's room
         user.room = normalizedRoomName
         socket.join(normalizedRoomName)
 
-        // Tell to everyone except the client
-        socket.to(normalizedRoomName).emit('message', buildMessage("INFO", name + " joined the room"))
+        // Load message history
+        const rooms = RoomDB.getAllRooms()
+        const currentRoom = rooms.find(r => r.room_name === normalizedRoomName)
+        
+        if (currentRoom) {
+            const historyResult = MessageDB.getByRoom(currentRoom.id, 50)
+            if (historyResult.success) {
+                socket.emit('messageHistory', historyResult.messages)
+            }
+        }
+
+        // Tell everyone except the client
+        sendMessage(normalizedRoomName, user.username, `${user.username} joined the room`, {
+            messageType: MESSAGE_TYPES.USER_JOIN,
+            target: 'others',
+            socketId: socket.id
+        })
 
         // Only to client
-        socket.emit('message', buildMessage("INFO", "You have joined the room " + normalizedRoomName))
+        sendMessage(normalizedRoomName, 'SYSTEM', `You have joined ${normalizedRoomName}`, {
+            messageType: MESSAGE_TYPES.SYSTEM_INFO,
+            target: 'client',
+            socketId: socket.id
+        })
 
         // To display the correct room
         socket.emit('roomChanged', normalizedRoomName)
 
         // Update lists
         broadcastUserList(normalizedRoomName)
-
         broadcastRoomList()
     })
 
@@ -385,13 +462,19 @@ io.on('connection', (socket) => {
         const user = UsersState.getBySocketId(socket.id)
         
         if (user) {
+            const userRoom = user.room
+            
             RoomDB.leaveRoom(user.userId)
 
-            io.to(user.room).emit('message', buildMessage('INFO', `${user.name} s'est déconnecté`))
+            sendMessage(userRoom, user.username, `${user.username} disconnected`, {
+                messageType: MESSAGE_TYPES.USER_DISCONNECT,
+                target: 'room'
+            })
             
-            broadcastUserList(user.room)
+            broadcastUserList(userRoom)
 
             UsersState.removeUser(socket.id)
+
             const result = RoomDB.deleteEmptyRooms()
             if (result.deletedCount > 0) console.log(`${result.deletedCount} rooms removed.`)
 
@@ -404,15 +487,79 @@ io.on('connection', (socket) => {
     })
 })
 
+const MESSAGE_TYPES = {
+    USER_MESSAGE: 'USER_MESSAGE',
+    USER_JOIN: 'USER_JOIN',
+    USER_LEAVE: 'USER_LEAVE',
+    USER_DISCONNECT: 'USER_DISCONNECT',
+    ROOM_CREATED: 'ROOM_CREATED',
+    SYSTEM_INFO: 'SYSTEM_INFO',
+    SYSTEM_ALERT: 'SYSTEM_ALERT',
+    SYSTEM_ERROR: 'SYSTEM_ERROR'
+}
 
-function buildMessage(name, text) {
-    return {
-        name,
-        text,
-        time: new Intl.DateTimeFormat('fr-FR', {
-            hour: '2-digit',
-            minute: '2-digit'
-        }).format(new Date())
+// Helper functions
+function sendMessage(roomName, username, text, options = {}) {
+    const {
+        messageType = MESSAGE_TYPES.USER_MESSAGE,
+        target = 'room',
+        socketId = null
+    } = options
+
+    const rooms = RoomDB.getAllRooms()
+    const room = rooms.find(r => r.room_name === roomName)
+    
+    if (!room) {
+        console.error(`Room ${roomName} not found`)
+        return
+    }
+
+    // System user (id = 0)
+    let userId = 0
+    if (messageType === MESSAGE_TYPES.USER_MESSAGE) {
+        const user = UsersState.getUserByName(username)
+        userId = user ? user.userId : 0
+    }
+
+    let messageQuery
+    if (target !== 'client') {
+        const result = MessageDB.save(userId, username, room.id, text, null, null, null, null, messageType)
+        
+        if (!result.success) {
+            console.error('Error saving message:', result.error)
+            return
+        }
+
+        messageQuery = db.prepare(`
+            SELECT * FROM messages WHERE id = ?
+        `).get(result.messageId)
+    } else {
+        messageQuery = {
+            username: username,
+            message: text,
+            message_type: messageType,
+            created_at: new Date().toISOString()
+        }
+    }
+
+    switch(target) {
+        case 'room':
+            io.to(roomName).emit('message', messageQuery)
+            break
+        case 'client':
+            if (!socketId) {
+                console.error('socketId required for client target')
+                return
+            }
+            io.to(socketId).emit('message', messageQuery)
+            break
+        case 'others':
+            if (!socketId) {
+                console.error('socketId required for others target')
+                return
+            }
+            io.to(socketId).to(roomName).emit('message', messageQuery)
+            break
     }
 }
 

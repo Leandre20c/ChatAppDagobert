@@ -470,9 +470,10 @@ body {
     overflow: hidden;
     flex-shrink: 0;
     max-width: 70%;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+
+/* Messages types */
 .post--left {
     align-self: flex-start;
     background-color: var(--clr-surface-a10);
@@ -483,34 +484,35 @@ body {
     background: linear-gradient(135deg, var(--clr-primary-a10), var(--clr-primary-a20));
 }
 
-.post--info {
-    background-color: var(--clr-info-a20);
-    color: var(--clr-dark-a0);
-    text-align: center;
-    max-width: 80%;
-    align-self: center;
-    font-style: italic;
-    font-size: 0.9rem;
-    padding: 0.6rem 1rem;
+.post--join i {
+    color: var(--clr-success-a10)
 }
 
-.info--icon {
-    color: var(--clr-info-a10);
+.post--leave i {
+    color: var(--clr-danger-a10)
 }
 
-.post--alert {
-    background-color: var(--clr-danger-a20);
-    color: var(--clr-dark-a0);
-    text-align: center;
-    max-width: 80%;
-    align-self: center;
-    font-style: italic;
-    font-size: 0.9rem;
-    padding: 0.6rem 1rem;
+.post--disconnect i {
+    color: var(--clr-danger-a10)
 }
 
-.alert--icon {
-    color: var(--clr-danger-a10);
+.post--room-created i {
+    color: var(--clr-success-a10)
+}
+
+.post--alert i {
+    color: var(--clr-danger-a0)
+}
+
+.post--event {
+    display: flex;
+    flex-direction: row;
+    padding: 0.5rem;
+    gap: 1rem;
+    background-color: transparent;
+    color: var(--clr-surface-a50);
+    font-style: var(--clr-surface-a50);
+    box-shadow: transparent;
 }
 
 .post__header {

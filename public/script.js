@@ -7,7 +7,6 @@ const chatDisplay = document.querySelector('.chat-display')
 const disconnect_button = document.getElementById("disconnect-button")
 const createRoomInput = document.getElementById('room-create-input')
 const searchRoomInput = document.getElementById('room-search-input')
-//const usersList = document.querySelector('.user-list')
 const roomList = document.querySelector('.room-list')
 const usernameDisplay = document.querySelector("#current-username")
 const currentRoomName = document.querySelector('#current-room-name')
@@ -15,13 +14,12 @@ const memberCount = document.querySelector('#member-count')
 const uploadFileButton = document.getElementById('upload-file')
 const hiddenFileInput = document.getElementById('hidden-file-input')
 
-// Should be useless now, but j'ai pas envie de retirer en real
+// Should be useless now, but I don't want to remove it in real time
 if (!username || username.trim() === "") {
     window.location.href = '/'
 } else {
     socket.emit('verify-session', username)
 }
-
 
 document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
@@ -37,19 +35,18 @@ document.querySelectorAll('.nav-item').forEach(item => {
     })
 })
 
-// If there is something wrongggg
+// If there is something wrong
 socket.on('session-invalid', () => {
     localStorage.removeItem('username')
-    alert('Votre session a expiré, veuillez vous reconnecter')
+    alert('Your session has expired, please reconnect')
     window.location.href = '/'
 })
 
 // If session is valid
 socket.on('session-valid', (userData) => {
-    // Afficher le username
     usernameDisplay.textContent = username
     currentRoomName.textContent = userData.roomName
-    console.log('Connecté en tant que:', userData.username)
+    console.log('Connected as:', userData.username)
 })
 
 socket.on('roomChanged', (roomName) => {
@@ -67,11 +64,10 @@ function sendMessage(e) {
             name: username,
             text: message_input.value
         })
-        // Clear the text and focus on text entry so user don't have to click on
         message_input.value = ''
     }
     message_input.focus()
-    chatDisplay.scrollTop = chatDisplay.scrollHeight;
+    chatDisplay.scrollTop = chatDisplay.scrollHeight
 }
 
 function tryCreateRoom(e) {
@@ -101,85 +97,146 @@ socket.on('create-room-failed', ({errorMessage}) => {
 document.querySelector('.message-form')
     .addEventListener('submit', sendMessage)
 
-
 disconnect_button.addEventListener("click", (e) => {
     e.preventDefault()
     localStorage.removeItem("username")
     window.location.href = 'connexion/login.html'
 })
 
-socket.on('message', (data) => {
-    const { name, text, time, photoUrl, isImage } = data
+// Helper function to format time
+function formatTime(isoString) {
+    const date = new Date(isoString)
+    return new Intl.DateTimeFormat('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit'
+    }).format(date)
+}
+
+// Helper function to display a message
+function displayMessage(data) {
+   const name = data.username || data.name
+    const text = data.message || data.text || ''
+    const time = data.created_at ? formatTime(data.created_at) : data.time
+    const photoUrl = data.file_path || data.photoUrl
+    const messageType = data.message_type || 'USER_MESSAGE'
+    
     const li = document.createElement('li')
     li.className = 'post'
-    if (name === username) li.className = 'post post--right'
-    if (name !== username) li.className = 'post post--left'
-    if (name === 'INFO') li.className = 'post post--info'
-    if (name === 'ALERT') li.className = 'post post--alert'
+    
+    // Style based on message type
+    switch(messageType) {
+        case 'USER_MESSAGE':
+            if (name === username) li.className = 'post post--right'
+            else li.className = 'post post--left'
+            break
+        case 'USER_JOIN':
+            li.className = 'post post--join post--event'
+            break
+        case 'USER_LEAVE':
+            li.className = 'post post--leave post--event'
+            break
+        case 'USER_DISCONNECT':
+            li.className = 'post post--disconnect post--event'
+            break
+        case 'ROOM_CREATED':
+            li.className = 'post post--room-created post--event'
+            break
+        case 'SYSTEM_INFO':
+            li.className = 'post post--info post--event'
+            break
+        case 'SYSTEM_ALERT':
+            li.className = 'post post--alert post--event'
+            break
+        case 'SYSTEM_ERROR':
+            li.className = 'post post--error post--event'
+            break
+    }
 
-    if (isImage || (photoUrl && photoUrl !== '')) {
-        console.log('Received image message:', data)
+    let contentHtml = ''
+    let iconHtml = ''
+    
+    // Icons based on type
+    switch(messageType) {
+        case 'USER_JOIN':
+            iconHtml = '<i class="fa-solid fa-arrow-right-to-bracket"></i>'
+            break
+        case 'USER_LEAVE':
+            iconHtml = '<i class="fa-solid fa-arrow-right-from-bracket"></i>'
+            break
+        case 'USER_DISCONNECT':
+            iconHtml = '<i class="fa-solid fa-plug-circle-xmark"></i>'
+            break
+        case 'ROOM_CREATED':
+            iconHtml = '<i class="fa-solid fa-door-open"></i>'
+            break
+        case 'SYSTEM_INFO':
+            iconHtml = '<i class="fa-solid fa-circle-info"></i>'
+            break
+        case 'SYSTEM_ALERT':
+            iconHtml = '<i class="fa-solid fa-circle-exclamation"></i>'
+            break
+        case 'SYSTEM_ERROR':
+            iconHtml = '<i class="fa-solid fa-triangle-exclamation"></i>'
+            break
+    }
+    
+    // Check if there's an image attachment
+    if (photoUrl && photoUrl !== '') {
         contentHtml = `<div class="post__text">
             <img src="${photoUrl}" class="post--image" style="max-width: 200px; border-radius: 8px; cursor: pointer;" onclick="window.open(this.src)">
             ${text ? `<br><span>${text}</span>` : ''}
         </div>`
-    }     
-    else {
+    } else {
         contentHtml = `<div class="post__text">${text}</div>`
     }
 
-    if (name === 'ALERT') {
-        li.innerHTML =
-        `<div class="post__header">
-            <i class="fa-solid fa-circle-exclamation alert--icon"></i>
-            <span class="post__header--time">${time}</span>
-        </div>
-        ${contentHtml}`
-    }
-    else if (name === 'INFO') {
-        li.innerHTML =
-        `<div class="post__header">
-            <i class="fa-solid fa-circle-info info--icon"></i>
-            <span class="post__header--time">${time}</span>
-        </div>
-        ${contentHtml}`
+    if (messageType !== 'USER_MESSAGE') {
+        li.innerHTML = `
+            ${iconHtml} ${contentHtml} <span class="post__header--time">${time}</span>
+            `
     }
     else if (name !== username) {
-        li.innerHTML = `<div class="post__header">
-            <span class="post__header--name">${name}</span>
-            <span class="post__header--time">${time}</span>
-        </div>
-        ${contentHtml}`
+        li.innerHTML = `
+            <div class="post__header">
+                <span class="post__header--name">${name}</span>
+                <span class="post__header--time">${time}</span>
+            </div>
+            ${contentHtml}`
     } else {
-        li.innerHTML = `${contentHtml}
-        <div class="post__header">
-            <span class="post__header--time">${time}</span>
-        </div>`
+        li.innerHTML = `
+            ${contentHtml}
+            <div class="post__header">
+                <span class="post__header--time">${time}</span>
+            </div>`
     }
+    
     chatDisplay.appendChild(li)
     chatDisplay.scrollTop = chatDisplay.scrollHeight
+}
+
+// Listen for message history (when joining a room)
+socket.on('messageHistory', (messages) => {
+    // Clear chat display
+    chatDisplay.innerHTML = ''
+    
+    // Display all messages from history
+    messages.forEach(msg => {
+        displayMessage(msg)
+    })
+})
+
+// Listen for new messages
+socket.on('message', (data) => {
+    displayMessage(data)
 })
 
 socket.on('userList', ({ users }) => {
-    //showUsers(users)
     memberCount.textContent = users.length
 })
 
 socket.on('roomList', ({ rooms }) => {
     showRooms(rooms)
 })
-
-function showUsers(users) {
-    usersList.textContent = ''
-    if (users && users.length > 0) {
-        users.forEach((user, i) => {
-            usersList.textContent += ` ${user.username}`
-            if (users.length > 1 && i !== users.length - 1) {
-                usersList.textContent += ","
-            }
-        })
-    }
-}
 
 function showRooms(rooms) {
     roomList.textContent = ''
@@ -188,16 +245,13 @@ function showRooms(rooms) {
             const roomDiv = document.createElement('div')
             roomDiv.className = 'roomItem'
 
-            // Room item content
             roomDiv.innerHTML = `
                 <span class="roomItem--count"><i class="fa-solid fa-user connected-user-icon fa-sm"></i>${room.userCount}</span>
                 <span class="roomItem--name">${room.room_name}</span>
             `
             
-            // Tooltip
             roomDiv.title = `Click to join ${room.room_name}.`
             
-            // Click action
             roomDiv.addEventListener('click', () => {  
                 socket.emit('enterRoom', {
                     name: username,
@@ -219,8 +273,8 @@ hiddenFileInput.addEventListener('change', async (e) => {
     if (!file) return
 
     const formData = new FormData()
-    formData.append('photo', file) // 'photo' ->uplaod.single('photo') dans index.js
-    formData.append('socketId', socket.id) // IMPORTANT: On envoie l'ID pour savoir qui envoie
+    formData.append('photo', file)
+    formData.append('socketId', socket.id)
 
     try {
         const response = await fetch('/upload-photo', {
@@ -231,13 +285,13 @@ hiddenFileInput.addEventListener('change', async (e) => {
         const result = await response.json()
 
         if (!result.success) {
-            alert('Erreur envoi image: ' + result.error)
+            alert('Error sending image: ' + result.error)
         } else {
-            console.log('Image envoyée avec succès !')
+            console.log('Image sent successfully!')
         }
     } catch (err) {
-        console.error('Erreur upload:', err)
-        alert('Erreur lors de l\'envoi de l\'image')
+        console.error('Upload error:', err)
+        alert('Error sending the image')
     }
 
     hiddenFileInput.value = ''
