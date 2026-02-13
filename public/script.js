@@ -12,6 +12,8 @@ const roomList = document.querySelector('.room-list')
 const usernameDisplay = document.querySelector("#current-username")
 const currentRoomName = document.querySelector('#current-room-name')
 const memberCount = document.querySelector('#member-count')
+const uploadFileButton = document.getElementById('upload-file')
+const hiddenFileInput = document.getElementById('hidden-file-input')
 
 // Should be useless now, but j'ai pas envie de retirer en real
 if (!username || username.trim() === "") {
@@ -107,7 +109,7 @@ disconnect_button.addEventListener("click", (e) => {
 })
 
 socket.on('message', (data) => {
-    const { name, text, time } = data
+    const { name, text, time, photoUrl, isImage } = data
     const li = document.createElement('li')
     li.className = 'post'
     if (name === username) li.className = 'post post--right'
@@ -115,6 +117,16 @@ socket.on('message', (data) => {
     if (name === 'INFO') li.className = 'post post--info'
     if (name === 'ALERT') li.className = 'post post--alert'
 
+    if (isImage || (photoUrl && photoUrl !== '')) {
+        console.log('Received image message:', data)
+        contentHtml = `<div class="post__text">
+            <img src="${photoUrl}" class="post--image" style="max-width: 200px; border-radius: 8px; cursor: pointer;" onclick="window.open(this.src)">
+            ${text ? `<br><span>${text}</span>` : ''}
+        </div>`
+    }     
+    else {
+        contentHtml = `<div class="post__text">${text}</div>`
+    }
 
     if (name === 'ALERT') {
         li.innerHTML =
@@ -122,7 +134,7 @@ socket.on('message', (data) => {
             <i class="fa-solid fa-circle-exclamation alert--icon"></i>
             <span class="post__header--time">${time}</span>
         </div>
-        <div class="post__text">${text}</div>`
+        ${contentHtml}`
     }
     else if (name === 'INFO') {
         li.innerHTML =
@@ -130,16 +142,16 @@ socket.on('message', (data) => {
             <i class="fa-solid fa-circle-info info--icon"></i>
             <span class="post__header--time">${time}</span>
         </div>
-        <div class="post__text">${text}</div>`
+        ${contentHtml}`
     }
     else if (name !== username) {
         li.innerHTML = `<div class="post__header">
             <span class="post__header--name">${name}</span>
             <span class="post__header--time">${time}</span>
         </div>
-        <div class="post__text">${text}</div>`
+        ${contentHtml}`
     } else {
-        li.innerHTML = `<div class="post__text">${text}</div>
+        li.innerHTML = `${contentHtml}
         <div class="post__header">
             <span class="post__header--time">${time}</span>
         </div>`
@@ -197,3 +209,36 @@ function showRooms(rooms) {
         })
     }
 }
+
+uploadFileButton.addEventListener('click', () => {
+    hiddenFileInput.click()
+})
+
+hiddenFileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('photo', file) // 'photo' ->uplaod.single('photo') dans index.js
+    formData.append('socketId', socket.id) // IMPORTANT: On envoie l'ID pour savoir qui envoie
+
+    try {
+        const response = await fetch('/upload-photo', {
+            method: 'POST',
+            body: formData
+        })
+
+        const result = await response.json()
+
+        if (!result.success) {
+            alert('Erreur envoi image: ' + result.error)
+        } else {
+            console.log('Image envoyée avec succès !')
+        }
+    } catch (err) {
+        console.error('Erreur upload:', err)
+        alert('Erreur lors de l\'envoi de l\'image')
+    }
+
+    hiddenFileInput.value = ''
+})

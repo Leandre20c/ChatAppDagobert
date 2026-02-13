@@ -3,8 +3,38 @@ const app = express()
 const http = require('http').createServer(app)
 const io = require('socket.io')(http)
 const { UserDB, MessageDB, RoomDB, db } = require('./database')
-
+const fs = require('fs')
+const sharp = require('sharp')
 let activeRooms = []
+
+// Pour les images
+const multer = require('multer')
+const path = require('path')
+
+const UPLOAD_TEMP_DIR = path.join(__dirname, 'temp_uploads')
+const UPLOAD_FINAL_DIR = path.join(__dirname, '../public/uploads')
+
+//TEMP_UPLAAD AND UPLOADS HAVE TO EXIST FOR SURE
+if (!fs.existsSync(UPLOAD_TEMP_DIR)) {
+    console.log('Création du dossier temporaire :', UPLOAD_TEMP_DIR)
+    fs.mkdirSync(UPLOAD_TEMP_DIR, { recursive: true })
+}
+
+if (!fs.existsSync(UPLOAD_FINAL_DIR)) {
+    console.log('Création du dossier final :', UPLOAD_FINAL_DIR)
+    fs.mkdirSync(UPLOAD_FINAL_DIR, { recursive: true })
+}
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, UPLOAD_TEMP_DIR)
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname))
+  }
+})
+const upload = multer({ storage: storage })
+
 
 function loadRooms() {
     const stmt = db.prepare('SELECT id, room_name, is_permanent FROM rooms')
@@ -72,6 +102,57 @@ const UsersState = {
 
 // On rend tout accessible avec express
 app.use(express.static('public'))
+
+// Photo upload endpoint
+app.post('/upload-photo', upload.single('photo'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' })
+        }
+
+        const user = UsersState.getBySocketId(req.body.socketId)
+        if (!user) {
+            fs.unlinkSync(req.file.path)
+            return res.status(401).json({ error: 'User not authenticated' })
+        }
+
+        // SHARP CONVERTION
+        const processedFilename = `img${Date.now()}_${Math.round(Math.random() * 1E9)}.webp`
+        const finalFilePath = path.join(UPLOAD_FINAL_DIR, processedFilename)
+
+        await sharp(req.file.path)
+            .resize(800, 600, {
+                fit: 'inside',
+                withoutEnlargement: true
+            })
+            .webp({ quality: 80 })
+            .toFile(finalFilePath)
+
+        // CLEAN TEMPSTORAGE
+        fs.unlinkSync(req.file.path)
+
+        const publicUrl = `/uploads/${processedFilename}`
+
+        // Emit photo
+        const photoMessage = {
+            name: user.username,
+            text: req.body.message || '',
+            photoUrl: publicUrl,
+            time: new Intl.DateTimeFormat('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(new Date())
+        }
+
+        io.to(user.room).emit('message', photoMessage)
+
+        res.json({ success: true, photoUrl: publicUrl })
+
+    } catch (error) {
+        console.error('Error processing photo:', error)
+        res.status(500).json({ error: 'Error processing photo' })
+    }
+})
 
 // On demarre la bestiole
 http.listen(3000, () => {
